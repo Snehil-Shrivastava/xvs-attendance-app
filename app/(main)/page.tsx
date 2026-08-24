@@ -9,6 +9,7 @@ import Image from "next/image";
 import bgImg from "@/public/bg-vector-2.svg";
 import hamburger from "@/public/hamburger.svg";
 import DashboardUserInfo from "@/components/DashboardUserInfo";
+import DashboardHighlights from "@/components/DashboardHighlights";
 
 export default function DashboardPage() {
   const { user, userData, loading, logout } = useAuth();
@@ -35,7 +36,7 @@ export default function DashboardPage() {
           <Image
             src={bgImg}
             alt=""
-            className="absolute inset-0 select-none pointer-events-none"
+            className="absolute inset-0 select-none pointer-events-none -z-1"
           />
           <Image src={hamburger} alt="" />
           <span className="tracking-[16px] -mr-4 text-xs uppercase">
@@ -44,6 +45,9 @@ export default function DashboardPage() {
           <Bell className="w-5 h-5" />
         </div>
         <DashboardUserInfo />
+      </div>
+      <div>
+        <DashboardHighlights />
       </div>
     </div>
   );
