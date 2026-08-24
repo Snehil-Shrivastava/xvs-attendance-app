@@ -1,7 +1,7 @@
 // src/app/actions/auth.ts
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin-file";
 
 /**
  * Resolves whether the entered value is an email or a User ID.
