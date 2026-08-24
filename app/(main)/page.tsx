@@ -10,6 +10,7 @@ import bgImg from "@/public/bg-vector-2.svg";
 import hamburger from "@/public/hamburger.svg";
 import DashboardUserInfo from "@/components/DashboardUserInfo";
 import DashboardHighlights from "@/components/DashboardHighlights";
+import DashboardRequests from "@/components/DashboardRequests";
 
 export default function DashboardPage() {
   const { user, userData, loading, logout } = useAuth();
@@ -46,8 +47,12 @@ export default function DashboardPage() {
         </div>
         <DashboardUserInfo />
       </div>
-      <div>
+      <div className="py-10 px-5">
         <DashboardHighlights />
+        <DashboardRequests />
+        <button className="capitalize text-white text-base bg-brand-orange py-3 w-full mt-4">
+          view attendance
+        </button>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@
   --foreground: #ffffff;
   --brand-orange: #f79839;
   --brand-cream: #f3edde;
+  --brand-red: #c23e3e;
 }
 
 @theme inline {
@@ -12,6 +13,7 @@
   --color-foreground: var(--foreground);
   --color-brand-orange: var(--brand-orange);
   --color-brand-cream: var(--brand-cream);
+  --color-brand-red: var(--brand-red);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-poppins: var(--font-poppins);

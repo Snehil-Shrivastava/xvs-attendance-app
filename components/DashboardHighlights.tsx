@@ -98,9 +98,9 @@ const DashboardHighlights = () => {
   const formattedLeave = String(rawLeaveDays).padStart(2, "0");
 
   return (
-    <div className="text-black py-10 px-5">
+    <div className="text-black">
       {/* Section Header */}
-      <span className="text-[12px] text-[#8C827A]">Highlights</span>
+      <span className="text-[10px] opacity-50">Highlights</span>
 
       {/* 2-Card Grid */}
       <div className="flex items-stretch justify-between mt-3 text-center gap-3">
