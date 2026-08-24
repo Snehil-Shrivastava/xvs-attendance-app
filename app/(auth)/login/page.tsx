@@ -129,8 +129,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Eye, EyeClosed, Lock, User, Loader2 } from "lucide-react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { resolveEmail } from "@/app/actions/auth";
+// import { auth } from "@/lib/firebase";
+import { auth, resolveEmailFromId } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -158,7 +158,7 @@ const LoginPage = () => {
 
     try {
       // 1. Resolve User ID (e.g. "1001") -> Real Email (e.g. "admin@xvscreations.com")
-      const result = await resolveEmail(userId);
+      const result = await resolveEmailFromId(userId);
 
       if (!result.success || !result.email) {
         setErrorMessage(result.error || "Invalid User ID or Email.");
