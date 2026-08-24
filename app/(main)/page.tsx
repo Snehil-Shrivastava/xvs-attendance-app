@@ -6,8 +6,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Bell, Loader2, LogOut, ShieldCheck, UserCheck } from "lucide-react";
 
 import Image from "next/image";
-import bgImg from "@/public/bg-vector.svg";
+import bgImg from "@/public/bg-vector-2.svg";
 import hamburger from "@/public/hamburger.svg";
+import DashboardUserInfo from "@/components/DashboardUserInfo";
 
 export default function DashboardPage() {
   const { user, userData, loading, logout } = useAuth();
@@ -28,15 +29,21 @@ export default function DashboardPage() {
     );
   }
   return (
-    <div className="h-screen relative font-poppins">
-      <div className="py-10">
-        <div className="flex justify-between items-center px-5">
+    <div className="h-screen font-poppins bg-brand-cream">
+      <div className="bg-background px-5 py-10 relative overflow-hidden dashboard-clip flex flex-col gap-8">
+        <div className="flex justify-between items-center">
+          <Image
+            src={bgImg}
+            alt=""
+            className="absolute inset-0 select-none pointer-events-none"
+          />
           <Image src={hamburger} alt="" />
-          <span className="tracking-[16px] mr-[-16px] text-xs uppercase font-light">
+          <span className="tracking-[16px] -mr-4 text-xs uppercase">
             dashboard
           </span>
           <Bell className="w-5 h-5" />
         </div>
+        <DashboardUserInfo />
       </div>
     </div>
   );

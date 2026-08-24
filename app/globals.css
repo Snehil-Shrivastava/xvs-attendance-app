@@ -15,10 +15,21 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-poppins: var(--font-poppins);
+  --font-calSans: var(--font-calSans);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.dashboard-clip {
+  clip-path: polygon(
+    0 0,
+    0 100%,
+    calc(100% - 20px) 100%,
+    100% calc(100% - 22px),
+    100% 0
+  );
 }
