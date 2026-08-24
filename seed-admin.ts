@@ -46,7 +46,7 @@ async function createInitialAdmin() {
     await db.collection("users").doc(userId).set({
       userId: userId,
       email: email,
-      name: "System Admin",
+      name: "Snehil Shrivastava",
       department: "Web Development",
       role: "admin",
       mustChangePassword: false,

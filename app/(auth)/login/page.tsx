@@ -287,7 +287,7 @@ const LoginPage = () => {
                 <span>Logging in...</span>
               </>
             ) : (
-              <span>Login</span>
+              <span>Log in</span>
             )}
           </button>
 
