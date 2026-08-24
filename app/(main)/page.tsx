@@ -31,7 +31,7 @@ export default function DashboardPage() {
     );
   }
   return (
-    <div className="h-screen font-poppins bg-brand-cream">
+    <div className="min-h-screen font-poppins bg-brand-cream">
       <div className="bg-background px-5 py-10 relative overflow-hidden dashboard-clip flex flex-col gap-8">
         <div className="flex justify-between items-center">
           <Image
