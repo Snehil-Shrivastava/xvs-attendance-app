@@ -9,7 +9,13 @@ const truncateName = (name: string, limit = 11) => {
   return name.length > limit ? `${name.slice(0, limit)}...` : name;
 };
 
-const DashboardUserInfo = () => {
+const DashboardUserInfo = ({
+  datetime,
+  nameTruncate = false,
+}: {
+  datetime?: boolean;
+  nameTruncate?: boolean;
+}) => {
   const { userData, loading } = useAuth();
 
   const today = new Date();
@@ -53,7 +59,7 @@ const DashboardUserInfo = () => {
             title={userData?.name || "Employee Name"}
           >
             {/* @ts-expect-error unknown */}
-            {truncateName(userData?.name)}
+            {nameTruncate ? truncateName(userData?.name) : userData?.name}
           </h2>
 
           {/* Department */}
@@ -68,13 +74,15 @@ const DashboardUserInfo = () => {
         </div>
       </div>
 
-      <div className="flex flex-col border-l border-l-neutral-500 pl-8">
-        <span className="capitalize text-[8px]">{dayName}</span>
-        <span className="uppercase font-calSans text-base">
-          {formattedDate}
-        </span>
-        <span className="text-[10px] tracking-[12px]">{year}</span>
-      </div>
+      {datetime && (
+        <div className="flex flex-col border-l border-l-neutral-500 pl-8">
+          <span className="capitalize text-[8px]">{dayName}</span>
+          <span className="uppercase font-calSans text-base">
+            {formattedDate}
+          </span>
+          <span className="text-[10px] tracking-[12px]">{year}</span>
+        </div>
+      )}
     </div>
   );
 };

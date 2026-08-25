@@ -106,7 +106,7 @@ export default function DashboardPage() {
           </span>
           <Bell className="w-5 h-5" />
         </div>
-        <DashboardUserInfo />
+        <DashboardUserInfo datetime={true} nameTruncate={true} />
       </div>
       <div className="py-10 px-5">
         <DashboardHighlights />
