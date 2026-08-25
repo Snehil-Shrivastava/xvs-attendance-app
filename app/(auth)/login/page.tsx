@@ -199,16 +199,16 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="h-screen relative font-poppins px-8">
+    <div className="h-screen relative font-poppins px-8 bg-brand-black">
       {/* Background vector */}
       <Image
         src={bgImg}
         alt=""
         priority
-        className="absolute inset-x-0 bottom-0 select-none pointer-events-none -z-1"
+        className="absolute inset-x-0 bottom-0 select-none pointer-events-none z-0"
       />
 
-      <div className="flex flex-col items-center justify-center h-full gap-15">
+      <div className="flex flex-col items-center justify-center h-full gap-15 relative z-1">
         {/* Logo */}
         <header className="flex flex-col items-center gap-5">
           <Image src={appLogo} alt="Presence Logo" />

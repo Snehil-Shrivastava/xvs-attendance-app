@@ -93,7 +93,7 @@ export default function DashboardPage() {
   }
   return (
     <div className="min-h-screen font-poppins bg-brand-cream">
-      <div className="bg-background px-5 py-10 relative overflow-hidden dashboard-clip flex flex-col gap-8">
+      <div className="bg-brand-black px-5 py-10 overflow-hidden dashboard-clip flex flex-col gap-8 sticky top-0 z-20">
         <div className="flex justify-between items-center">
           <Image
             src={bgImg}

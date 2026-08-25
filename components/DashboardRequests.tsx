@@ -15,11 +15,11 @@ const DashboardRequests = () => {
           <Image src={lateArrival} alt="" className="mx-auto mb-4 w-10 h-10" />
           <span className="capitalize text-[12px]">Late Arrival</span>
         </div>
-        <div className="bg-background px-5 py-8 text-center flex-1">
+        <div className="bg-brand-black px-5 py-8 text-center flex-1">
           <Image src={leaveApply} alt="" className="mx-auto mb-4 w-10 h-10" />
           <span className="capitalize text-[12px]">Apply for leave</span>
         </div>
-        <div className="bg-background px-5 py-8 text-center flex-1">
+        <div className="bg-brand-black px-5 py-8 text-center flex-1">
           <Image src={halfdayApply} alt="" className="mx-auto mb-4 w-10 h-10" />
           <span className="capitalize text-[12px]">apply for half day</span>
         </div>
