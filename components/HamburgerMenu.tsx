@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import DashboardUserInfo from "./DashboardUserInfo";
 
+import homeSVG from "@/public/homeSVG.svg";
 import attendanceSVG from "@/public/attendance.svg";
 import leavesSVG from "@/public/apply-for-leave.svg";
 import laterArrivalSVG from "@/public/late-arrival.svg";
@@ -18,6 +19,7 @@ import profileSVG from "@/public/profile.svg";
 
 // Nav items (excluding Logout)
 const NAV_ITEMS = [
+  { label: "Home", href: "/", icon: homeSVG },
   { label: "Attendance", href: "/attendance", icon: attendanceSVG },
   { label: "Leaves", href: "#", icon: leavesSVG },
   { label: "Late Arrivals", href: "#", icon: laterArrivalSVG },
