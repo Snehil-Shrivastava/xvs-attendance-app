@@ -1,116 +1,9 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { createPortal } from "react-dom";
-// import Image from "next/image";
-// import { X } from "lucide-react";
-// import hamburger from "@/public/hamburger.svg";
-// import Link from "next/link";
-// import DashboardUserInfo from "./DashboardUserInfo";
-
-// import attendanceSVG from "@/public/attendance.svg";
-// import leavesSVG from "@/public/apply-for-leave.svg";
-// import laterArrivalSVG from "@/public/late-arrival.svg";
-// import requestsSVG from "@/public/requests.svg";
-// import profileSVG from "@/public/profile.svg";
-
-// const MENU_ITEMS = [
-//   { label: "Attendance", href: "#", icon: attendanceSVG },
-//   { label: "Leaves", href: "#", icon: leavesSVG },
-//   { label: "Late Arrivals", href: "#", icon: laterArrivalSVG },
-//   { label: "Requests", href: "#", icon: requestsSVG },
-//   { label: "Profile", href: "#", icon: profileSVG },
-//   { label: "Logout", href: "#", icon: leavesSVG },
-// ];
-
-// const HamburgerMenu = () => {
-//   const [isOpen, setIsOpen] = useState(false);
-//   const [mounted, setMounted] = useState(false);
-
-//   // Portals need a client-side mount check (no document during SSR)
-//   useEffect(() => {
-//     setMounted(true);
-//   }, []);
-
-//   useEffect(() => {
-//     document.body.style.overflow = isOpen ? "hidden" : "";
-//     return () => {
-//       document.body.style.overflow = "";
-//     };
-//   }, [isOpen]);
-
-//   useEffect(() => {
-//     // @ts-expect-error unknown
-//     const handleKeyDown = (e) => {
-//       if (e.key === "Escape") setIsOpen(false);
-//     };
-//     window.addEventListener("keydown", handleKeyDown);
-//     return () => window.removeEventListener("keydown", handleKeyDown);
-//   }, []);
-
-//   const overlay = (
-//     <div
-//       className={`fixed inset-0 z-100 h-screen w-screen bg-brand-black transition-transform duration-300 ease-in-out ${
-//         isOpen ? "translate-x-0" : "-translate-x-full"
-//       }`}
-//     >
-//       <div className="flex flex-col h-full px-5 py-10">
-//         <div className="flex justify-end items-center">
-//           <button
-//             onClick={() => setIsOpen(false)}
-//             aria-label="Close menu"
-//             className="cursor-pointer"
-//           >
-//             <X className="w-6 h-6 text-white" />
-//           </button>
-//         </div>
-
-//         <DashboardUserInfo />
-
-//         <hr className="my-10 border-neutral-600/50 border" />
-
-//         <nav className="flex flex-col gap-10">
-//           {MENU_ITEMS.map((item) => (
-//             <Link
-//               key={item.href}
-//               href={item.href}
-//               onClick={() => setIsOpen(false)}
-//               className="text-brand-cream text-xl capitalize tracking-wider flex items-center gap-5"
-//             >
-//               <Image src={item.icon} alt="" className="w-6 h-6" />
-//               <span>{item.label}</span>
-//             </Link>
-//           ))}
-//         </nav>
-//       </div>
-//     </div>
-//   );
-
-//   return (
-//     <>
-//       <button
-//         onClick={() => setIsOpen(true)}
-//         aria-label="Open menu"
-//         className="relative z-10 cursor-pointer"
-//       >
-//         <Image src={hamburger} alt="" />
-//       </button>
-
-//       {mounted && createPortal(overlay, document.body)}
-//     </>
-//   );
-// };
-
-// export default HamburgerMenu;
-
-// ------------------------------------------------------------------------------------------------------
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { X, LogOut } from "lucide-react";
+import { X, Power } from "lucide-react";
 import hamburger from "@/public/hamburger.svg";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -126,10 +19,10 @@ import profileSVG from "@/public/profile.svg";
 // Nav items (excluding Logout)
 const NAV_ITEMS = [
   { label: "Attendance", href: "/attendance", icon: attendanceSVG },
-  { label: "Leaves", href: "/leaves", icon: leavesSVG },
-  { label: "Late Arrivals", href: "/late-arrivals", icon: laterArrivalSVG },
-  { label: "Requests", href: "/requests", icon: requestsSVG },
-  { label: "Profile", href: "/profile", icon: profileSVG },
+  { label: "Leaves", href: "#", icon: leavesSVG },
+  { label: "Late Arrivals", href: "#", icon: laterArrivalSVG },
+  { label: "Requests", href: "#", icon: requestsSVG },
+  { label: "Profile", href: "#", icon: profileSVG },
 ];
 
 const HamburgerMenu = () => {
@@ -216,9 +109,10 @@ const HamburgerMenu = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="text-red-400 text-lg capitalize tracking-wider flex items-center gap-5 hover:opacity-80 transition-opacity cursor-pointer text-left w-full mt-2"
+            className="text-red-400 text-lg capitalize tracking-wider flex items-center gap-5 hover:opacity-80 transition-opacity cursor-pointer text-left w-full"
           >
-            <LogOut className="w-6 h-6 text-red-400 shrink-0" />
+            {/* <LogOut className="w-6 h-6 text-red-400 shrink-0" /> */}
+            <Power className="w-6 h-6 text-red-400 shrink-0" />
             <span>Logout</span>
           </button>
         </nav>

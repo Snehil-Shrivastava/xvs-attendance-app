@@ -73,6 +73,7 @@ import HamburgerMenu from "@/components/HamburgerMenu";
 import DashboardUserInfo from "@/components/DashboardUserInfo";
 import DashboardHighlights from "@/components/DashboardHighlights";
 import DashboardRequests from "@/components/DashboardRequests";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -92,29 +93,15 @@ export default function DashboardPage() {
     );
   }
   return (
-    <div className="min-h-screen font-poppins bg-brand-cream">
-      <div className="bg-brand-black px-5 py-10 overflow-hidden dashboard-clip flex flex-col gap-8 sticky top-0 z-20">
-        <div className="flex justify-between items-center">
-          <Image
-            src={bgImg}
-            alt=""
-            className="absolute inset-0 select-none pointer-events-none -z-1"
-          />
-          <HamburgerMenu />
-          <span className="tracking-[16px] -mr-4 text-xs uppercase">
-            dashboard
-          </span>
-          <Bell className="w-5 h-5" />
-        </div>
-        <DashboardUserInfo datetime={true} nameTruncate={true} />
-      </div>
-      <div className="py-10 px-5">
-        <DashboardHighlights />
-        <DashboardRequests />
-        <button className="capitalize text-white text-base bg-brand-orange py-3 w-full mt-4">
-          view attendance
-        </button>
-      </div>
+    <div className="py-10 px-5 flex flex-col">
+      <DashboardHighlights />
+      <DashboardRequests />
+      <Link
+        href={"/attendance"}
+        className="capitalize text-white text-base bg-brand-orange py-3 w-full mt-4 text-center"
+      >
+        view attendance
+      </Link>
     </div>
   );
 }
