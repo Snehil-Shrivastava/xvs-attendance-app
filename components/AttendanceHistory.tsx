@@ -134,12 +134,12 @@ const AttendanceHistory = () => {
                   <div className="flex justify-end">
                     {isLate ? (
                       <div className="bg-[#C23C3C] text-white text-xs font-medium px-2 py-1.5 flex items-center justify-center gap-1.5 rounded-xs shadow-xs">
-                        <XCircle className="w-4 h-4 shrink-0" />
+                        <XCircle className="w-3 h-3 shrink-0" />
                         <span>Late</span>
                       </div>
                     ) : (
                       <div className="bg-[#F28B31] text-white text-xs font-medium px-2 py-1.5 flex items-center justify-center gap-1.5 rounded-xs shadow-xs">
-                        <Check className="w-4 h-4 shrink-0 stroke-3" />
+                        <Check className="w-3 h-3 shrink-0 stroke-3" />
                         <span>On Time</span>
                       </div>
                     )}

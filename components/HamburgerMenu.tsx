@@ -19,7 +19,7 @@ import profileSVG from "@/public/profile.svg";
 
 // Nav items (excluding Logout)
 const NAV_ITEMS = [
-  { label: "Home", href: "/", icon: homeSVG },
+  { label: "Dashboard", href: "/", icon: homeSVG },
   { label: "Attendance", href: "/attendance", icon: attendanceSVG },
   { label: "Leaves", href: "#", icon: leavesSVG },
   { label: "Late Arrivals", href: "#", icon: laterArrivalSVG },

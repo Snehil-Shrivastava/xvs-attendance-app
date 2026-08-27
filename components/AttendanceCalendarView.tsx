@@ -242,7 +242,7 @@ const AttendanceCalendarView = () => {
           Demarcations
         </span>
 
-        <div className="grid grid-cols-4 gap-y-4 gap-x-3 text-[9px]">
+        <div className="grid grid-cols-4 gap-y-4 gap-x-3 text-[8px]">
           {/* Row 1 */}
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 bg-[#457373] shrink-0" />
@@ -252,9 +252,9 @@ const AttendanceCalendarView = () => {
             <span className="w-4 h-4 bg-[#74C0B5] shrink-0" />
             <span>Half Day</span>
           </div>
-          <div className="flex items-center gap-2 col-span-2">
+          <div className="flex items-center gap-2">
             <span className="w-4 h-4 bg-[#517A63] shrink-0" />
-            <span>Work from Home</span>
+            <span>WFM</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 bg-[#4BA7E3] shrink-0" />
