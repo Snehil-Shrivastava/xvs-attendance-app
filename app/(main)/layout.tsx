@@ -32,7 +32,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             className="absolute inset-0 select-none pointer-events-none -z-1"
           />
           <HamburgerMenu />
-          <span className="tracking-[16px] -mr-4 text-xs uppercase">
+          <span className="tracking-[16px] -mr-4 text-xs uppercase select-none">
             {pageTitle}
           </span>
           <Bell className="w-5 h-5" />

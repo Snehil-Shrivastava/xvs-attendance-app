@@ -4,14 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Check,
-  Ban,
-  Clock,
-  ChevronsUpDown,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
+import { Check, Ban, Clock, ChevronsUpDown } from "lucide-react";
 
 interface RequestItem {
   id: string;

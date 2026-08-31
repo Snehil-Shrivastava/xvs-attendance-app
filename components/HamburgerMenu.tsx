@@ -68,7 +68,7 @@ const HamburgerMenu = () => {
 
   const overlay = (
     <div
-      className={`fixed inset-0 z-50 h-screen w-screen bg-brand-black transition-transform duration-300 ease-in-out ${
+      className={`fixed inset-0 z-50 h-screen w-screen bg-brand-black transition-transform duration-300 ease-in-out select-none ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >

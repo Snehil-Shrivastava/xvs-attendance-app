@@ -1,9 +1,8 @@
-// src/context/AuthContext.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 export interface UserProfile {
@@ -36,33 +35,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen to Firebase Auth state
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeUserDoc = () => {};
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
 
       if (currentUser) {
-        try {
-          // Fetch the employee's Firestore profile (using UID / User ID)
-          const userDocRef = doc(db, "users", currentUser.uid);
-          const docSnap = await getDoc(userDocRef);
+        const userDocRef = doc(db, "users", currentUser.uid);
 
+        // Real-time listener for profile changes (Name, photoUrl, etc.)
+        unsubscribeUserDoc = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             setUserData(docSnap.data() as UserProfile);
           } else {
             setUserData(null);
           }
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-          setUserData(null);
-        }
+          setLoading(false);
+        });
       } else {
         setUserData(null);
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      unsubscribeUserDoc();
+    };
   }, []);
 
   const logout = async () => {

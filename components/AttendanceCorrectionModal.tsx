@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -64,15 +64,6 @@ const AttendanceCorrectionModal = ({
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-sm border border-[#E5DEC9] bg-background py-5 px-4 rounded-xs shadow-xl text-[#231F20]"
       >
-        {/* Close "X" Button */}
-        {/* <button
-          onClick={onClose}
-          className="absolute right-3 top-3 text-white/80 hover:text-white transition cursor-pointer z-10"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button> */}
-
         {/* Top Header Bar */}
         <div className="bg-brand-orange text-white py-3 px-4 text-center rounded-xs mb-5 -mt-1 font-medium text-sm md:text-base tracking-wide">
           Attendance Correction
