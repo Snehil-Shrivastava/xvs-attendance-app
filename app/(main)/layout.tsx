@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 const ROUTE_TITLES: Record<string, string> = {
   "/": "dashboard",
   "/attendance": "attendance",
+  "/leaves": "leaves",
 };
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {

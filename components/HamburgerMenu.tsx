@@ -21,8 +21,8 @@ import profileSVG from "@/public/profile.svg";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: homeSVG },
   { label: "Attendance", href: "/attendance", icon: attendanceSVG },
-  { label: "Leaves", href: "#", icon: leavesSVG },
-  { label: "Late Arrivals", href: "#", icon: laterArrivalSVG },
+  { label: "Leaves", href: "/leaves", icon: leavesSVG },
+  { label: "Late Arrivals", href: "/late-arrivals", icon: laterArrivalSVG },
   { label: "Requests", href: "#", icon: requestsSVG },
   { label: "Profile", href: "#", icon: profileSVG },
 ];

@@ -1,34 +1,7 @@
-// const DashboardHighlights = () => {
-//   return (
-//     <div className="text-black py-10 px-5">
-//       <span className="text-[10px] opacity-50">Highlights</span>
-//       <div className="flex items-center justify-between mt-2.5 text-center">
-//         <div className="border border-black/10 px-3 py-2">
-//           <span className="font-calSans text-[12px]">Time Remaining</span>
-//           <h3 className="text-brand-orange font-calSans tracking-widest text-[51px]">
-//             {/* remaing time goes here */}
-//           </h3>
-//         </div>
-//         <div className="border border-black/10 px-3 py-2">
-//           <span className="font-calSans text-[12px]">Leave balance</span>
-//           <h3 className="text-brand-orange font-calSans tracking-widest text-[51px]">
-//             {/* remaing leave days goes here */}
-//           </h3>
-//           <span className="text-[10px] opacity-50">Days out of 24 days</span>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default DashboardHighlights;
-
-// -----------------------------------------------------------------------------------------
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -41,22 +14,26 @@ interface MonthlySummary {
 const DashboardHighlights = () => {
   const { user, userData, loading: authLoading } = useAuth();
   const [monthlyData, setMonthlyData] = useState<MonthlySummary | null>(null);
+  const [totalLeaveDaysTaken, setTotalLeaveDaysTaken] = useState(0);
   const [loadingSummary, setLoadingSummary] = useState(true);
+  const [loadingLeaves, setLoadingLeaves] = useState(true);
 
   // Current Month String (e.g. "2026-08")
   const currentMonth = new Date().toISOString().slice(0, 7);
+  // @ts-expect-error unknown
+  const annualQuota = userData?.leaves?.annualQuota ?? 24;
 
   useEffect(() => {
     if (!user) return;
 
-    // Real-time listener for the employee's monthly grace bank
+    // 1. Real-time listener for the employee's monthly grace bank
     const summaryDocRef = doc(
       db,
       "monthly_summaries",
       `${currentMonth}_${user.uid}`,
     );
 
-    const unsubscribe = onSnapshot(
+    const unsubscribeSummary = onSnapshot(
       summaryDocRef,
       (docSnap) => {
         if (docSnap.exists()) {
@@ -77,10 +54,39 @@ const DashboardHighlights = () => {
       },
     );
 
-    return () => unsubscribe();
+    // 2. Real-time listener for `leaves` collection to calculate accurate balance
+    const leavesQuery = query(
+      collection(db, "leaves"),
+      where("userId", "==", user.uid),
+    );
+
+    const unsubscribeLeaves = onSnapshot(
+      leavesQuery,
+      (snapshot) => {
+        let totalDays = 0;
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.status === "approved") {
+            totalDays += Number(data.totalDays || 0);
+          }
+        });
+
+        setTotalLeaveDaysTaken(totalDays);
+        setLoadingLeaves(false);
+      },
+      (error) => {
+        console.error("Error calculating leave balance:", error);
+        setLoadingLeaves(false);
+      },
+    );
+
+    return () => {
+      unsubscribeSummary();
+      unsubscribeLeaves();
+    };
   }, [user, currentMonth]);
 
-  const isLoading = authLoading || loadingSummary;
+  const isLoading = authLoading || loadingSummary || loadingLeaves;
 
   // 1. Calculate Minutes & Seconds for "Time Remaining"
   const rawGraceMinutes = monthlyData?.graceRemaining ?? 30;
@@ -90,17 +96,14 @@ const DashboardHighlights = () => {
   const formattedMins = String(graceMins).padStart(2, "0");
   const formattedSecs = String(graceSecs).padStart(2, "0");
 
-  // 2. Calculate Leave Balance
-  // @ts-expect-error unknown
-  const rawLeaveDays = userData?.leaves?.remaining ?? 24;
-  // @ts-expect-error unknown
-  const annualQuota = userData?.leaves?.annualQuota ?? 24;
-  const formattedLeave = String(rawLeaveDays).padStart(2, "0");
+  // 2. Calculate Accurate Leave Balance from `leaves` collection
+  const remainingLeaveDays = Math.max(0, annualQuota - totalLeaveDaysTaken);
+  const formattedLeave = String(remainingLeaveDays).padStart(2, "0");
 
   return (
     <div className="text-black">
       {/* Section Header */}
-      <span className="text-[10px] opacity-50">Highlights</span>
+      <span className="text-[10px] opacity-50 font-normal">Highlights</span>
 
       {/* 2-Card Grid */}
       <div className="flex items-stretch justify-between mt-3 text-center gap-3">
@@ -134,7 +137,7 @@ const DashboardHighlights = () => {
         </div>
 
         {/* =========================================
-            CARD 2: LEAVE BALANCE (05)
+            CARD 2: LEAVE BALANCE (e.g. 21)
         ========================================= */}
         <div className="border border-[#E5DEC9] bg-transparent py-5 px-5 flex flex-col items-center justify-between text-center">
           <h4 className="font-calSans text-[12px] tracking-wide">
@@ -145,7 +148,7 @@ const DashboardHighlights = () => {
             <div className="h-14 w-16 bg-[#E5DEC9]/50 animate-pulse my-auto rounded" />
           ) : (
             <div className="flex flex-col items-center my-auto">
-              {/* Leave Number Display */}
+              {/* Dynamically Computed Remaining Leaves */}
               <h3 className="font-calSans text-brand-orange text-[48px] md:text-[54px] leading-none tracking-wider">
                 {formattedLeave}
               </h3>
