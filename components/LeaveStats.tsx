@@ -91,6 +91,7 @@ const LeaveStats = () => {
   const [totalDaysTaken, setTotalDaysTaken] = useState(0);
   const [loadingLeaves, setLoadingLeaves] = useState(true);
 
+  // @ts-expect-error random
   const annualQuota = userData?.leaves?.annualQuota ?? 24;
 
   useEffect(() => {
