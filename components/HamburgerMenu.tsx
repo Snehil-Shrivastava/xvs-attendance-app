@@ -23,8 +23,8 @@ const NAV_ITEMS = [
   { label: "Attendance", href: "/attendance", icon: attendanceSVG },
   { label: "Leaves", href: "/leaves", icon: leavesSVG },
   { label: "Late Arrivals", href: "/late-arrivals", icon: laterArrivalSVG },
-  { label: "Requests", href: "#", icon: requestsSVG },
-  { label: "Profile", href: "#", icon: profileSVG },
+  { label: "Requests", href: "/requests", icon: requestsSVG },
+  { label: "Profile", href: "/my-profile", icon: profileSVG },
 ];
 
 const HamburgerMenu = () => {

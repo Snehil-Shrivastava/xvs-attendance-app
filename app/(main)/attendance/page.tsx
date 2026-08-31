@@ -1,28 +1,3 @@
-// import AttendanceCalendarView from "@/components/AttendanceCalendarView";
-// import AttendanceHistory from "@/components/AttendanceHistory";
-// import AttendanceStats from "@/components/AttendanceStats";
-// import Link from "next/link";
-
-// const AttendancePage = () => {
-//   return (
-//     <div className="py-10 px-5 flex flex-col gap-8">
-//       <AttendanceStats />
-//       <AttendanceCalendarView />
-//       <AttendanceHistory />
-//       <Link
-//         href={"#"}
-//         className="capitalize text-white text-base bg-brand-orange py-3 w-full mt-4 text-center"
-//       >
-//         request attendance correction
-//       </Link>
-//     </div>
-//   );
-// };
-
-// export default AttendancePage;
-
-// ----------------------------------------------------------------------------------------------
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -30,11 +5,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import AttendanceStats from "@/components/AttendanceStats";
 import AttendanceCalendarView from "@/components/AttendanceCalendarView";
 import AttendanceHistory from "@/components/AttendanceHistory";
-import Link from "next/link";
+import AttendanceCorrectionModal from "@/components/AttendanceCorrectionModal";
 
 const AttendancePage = () => {
-  // Shared month state for the entire page
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
 
   // "YYYY-MM" (e.g. "2026-08")
   const currentMonthStr = useMemo(() => {
@@ -64,53 +39,62 @@ const AttendancePage = () => {
   };
 
   return (
-    <div className="py-8 px-5 flex flex-col gap-6 font-poppins text-black">
-      {/* =========================================
-          GLOBAL TOP MONTH SELECTOR HEADER
-      ========================================= */}
-      <div className="flex items-center justify-between">
-        <h1 className="font-calSans text-xl tracking-wide select-none">
-          {formattedMonthTitle}
-        </h1>
+    <>
+      <div className="py-8 px-5 flex flex-col gap-6 font-poppins text-black">
+        {/* =========================================
+            GLOBAL TOP MONTH SELECTOR HEADER
+        ========================================= */}
+        <div className="flex items-center justify-between">
+          <h1 className="font-calSans text-xl tracking-wide select-none">
+            {formattedMonthTitle}
+          </h1>
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handlePrevMonth}
-            className="p-1 text-[#8C827A] hover:text-black transition cursor-pointer"
-            aria-label="Previous Month"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handleNextMonth}
-            className="p-1 hover:opacity-75 transition cursor-pointer"
-            aria-label="Next Month"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handlePrevMonth}
+              className="p-1 text-[#8C827A] hover:text-black transition cursor-pointer"
+              aria-label="Previous Month"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              onClick={handleNextMonth}
+              className="p-1 hover:opacity-75 transition cursor-pointer"
+              aria-label="Next Month"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
         </div>
+
+        {/* 1. Stats based on selected month */}
+        <AttendanceStats currentMonth={currentMonthStr} />
+
+        {/* 2. Calendar grid based on selected month */}
+        <AttendanceCalendarView
+          currentDate={currentDate}
+          currentMonthStr={currentMonthStr}
+        />
+
+        {/* 3. History logs */}
+        <AttendanceHistory />
+
+        {/* 4. Open Modal Button */}
+        <button
+          type="button"
+          onClick={() => setIsCorrectionModalOpen(true)}
+          className="capitalize text-white text-base bg-brand-orange py-3.5 w-full mt-2 text-center rounded-xs shadow-xs tracking-wider transition hover:bg-brand-orange/90 active:scale-[0.99] cursor-pointer"
+        >
+          Request Attendance Correction
+        </button>
       </div>
 
-      {/* 1. Stats based on selected month */}
-      <AttendanceStats currentMonth={currentMonthStr} />
-
-      {/* 2. Calendar grid based on selected month */}
-      <AttendanceCalendarView
-        currentDate={currentDate}
-        currentMonthStr={currentMonthStr}
+      {/* Attendance Correction Modal */}
+      <AttendanceCorrectionModal
+        isOpen={isCorrectionModalOpen}
+        onClose={() => setIsCorrectionModalOpen(false)}
       />
-
-      {/* 3. History logs */}
-      <AttendanceHistory />
-
-      {/* 4. Action Button */}
-      <Link
-        href="#"
-        className="capitalize text-white text-base bg-brand-orange py-3.5 w-full mt-2 text-center rounded-xs shadow-xs tracking-wider transition hover:bg-brand-orange/90 active:scale-[0.99]"
-      >
-        Request Attendance Correction
-      </Link>
-    </div>
+    </>
   );
 };
 

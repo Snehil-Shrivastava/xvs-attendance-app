@@ -12,7 +12,7 @@ const LeaveFormSuccessModal = ({
 
   return (
     <div
-      className="absolute inset-0 bg-black/30 backdrop-blur-[2px] z-100 flex items-center justify-center"
+      className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-100 flex items-center justify-center"
       onClick={onClose}
     >
       <div className="bg-brand-orange border-8 border-brand-cream flex flex-col items-center px-15 py-10 gap-5">
