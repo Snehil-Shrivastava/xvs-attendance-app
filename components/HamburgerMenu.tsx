@@ -68,9 +68,15 @@ const HamburgerMenu = () => {
 
   const overlay = (
     <div
-      className={`fixed inset-0 z-50 h-screen w-full max-w-106.25 mx-auto bg-brand-black transition-transform duration-300 ease-in-out select-none ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
+      className={`fixed inset-0 z-50 h-screen w-full max-w-106.25 mx-auto bg-brand-black transition-all duration-300 ease-in-out select-none ${
+        isOpen ? "translate-x-0" : "-translate-x-full invisible"
       }`}
+      style={{
+        backgroundImage: "url(/hamburger-menu-bg.svg)",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "bottom left",
+        backgroundSize: "contain",
+      }}
     >
       <div className="flex flex-col h-full px-5 py-10">
         {/* Close Button */}
