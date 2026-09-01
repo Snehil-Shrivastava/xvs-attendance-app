@@ -133,7 +133,7 @@ const HamburgerMenu = () => {
       <button
         onClick={() => setIsOpen(true)}
         aria-label="Open menu"
-        className="relative z-10 cursor-pointer"
+        className="relative z-10 cursor-pointer select-none"
       >
         <Image src={hamburger} alt="Open Menu" priority />
       </button>
