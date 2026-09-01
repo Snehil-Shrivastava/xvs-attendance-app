@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import sentSVG from "@/public/sentSVG.svg";
+import { useEffect } from "react";
 
 const LeaveFormSuccessModal = ({
   isOpen,
@@ -8,6 +11,17 @@ const LeaveFormSuccessModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Start a 3-second timer to automatically trigger onClose
+    const timer = setTimeout(() => {
+      onClose();
+    }, 2000);
+
+    // Clean up timer if the modal is closed manually before 3s or unmounted
+    return () => clearTimeout(timer);
+  }, [isOpen, onClose]);
   if (!isOpen) return null;
 
   return (
