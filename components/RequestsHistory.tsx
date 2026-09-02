@@ -4,15 +4,21 @@ import { useEffect, useState, useMemo } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { Check, Ban, Clock, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 
 interface RequestItem {
   id: string;
-  type: string; // "Sick Leave", "Late Request", "Attendance Correction", etc.
+  type: string; // "Leave", "Half Day", "Late Request", "Attendance Correction"
+  subType?: string; // "Sick Leave", "Casual Leave", etc.
   date: string; // "2026-08-11"
+  endDate?: string; // "2026-08-13"
+  timeInfo?: string; // "10:30 AM" or "09:00 AM - 01:00 PM"
   status: "approved" | "denied" | "pending";
   createdAt?: unknown;
 }
+
+type SortField = "type" | "date" | "status";
+type SortOrder = "asc" | "desc";
 
 const RequestsHistory = () => {
   const { user } = useAuth();
@@ -21,8 +27,24 @@ const RequestsHistory = () => {
   const [corrections, setCorrections] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sorting state for Date header: "desc" (newest first) or "asc" (oldest first)
-  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  // Sorting states
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  // Helper: Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM"
+  const formatTimeStr = (t?: string | null) => {
+    if (!t) return "";
+    if (t.includes("AM") || t.includes("PM")) return t;
+    try {
+      const [h, m] = t.split(":");
+      let hours = parseInt(h, 10);
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      return `${String(hours).padStart(2, "0")}:${m} ${ampm}`;
+    } catch {
+      return t;
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -37,10 +59,25 @@ const RequestsHistory = () => {
       const items: RequestItem[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        const isHalfDay =
+          data.leaveType === "Half Day" ||
+          data.durationType === "half" ||
+          data.totalDays === 0.5;
+
+        let timeDetails = "";
+        if (isHalfDay && (data.fromTime || data.toTime)) {
+          const from = formatTimeStr(data.fromTime);
+          const to = formatTimeStr(data.toTime);
+          timeDetails = `${from} - ${to}`;
+        }
+
         items.push({
           id: `leave_${docSnap.id}`,
-          type: data.leaveType || "Leave",
+          type: isHalfDay ? "Half Day" : "Leave",
+          subType: isHalfDay ? undefined : data.leaveType || "Leave",
           date: data.startDate || "",
+          endDate: data.endDate || "",
+          timeInfo: timeDetails,
           status: data.status || "pending",
           createdAt: data.createdAt,
         });
@@ -61,6 +98,7 @@ const RequestsHistory = () => {
           id: `late_${docSnap.id}`,
           type: "Late Request",
           date: data.date || "",
+          timeInfo: formatTimeStr(data.newArrivalTime || "10:00 AM"),
           status: data.status || "pending",
           createdAt: data.createdAt,
         });
@@ -96,19 +134,40 @@ const RequestsHistory = () => {
     };
   }, [user]);
 
+  // Handle column header clicks
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortOrder(field === "date" ? "desc" : "asc");
+    }
+  };
+
   // Combine and Sort all request types
   const combinedRequests = useMemo(() => {
     const all = [...leaves, ...lateRequests, ...corrections];
 
     return all.sort((a, b) => {
-      const dateA = a.date || "";
-      const dateB = b.date || "";
-      if (sortOrder === "asc") {
-        return dateA.localeCompare(dateB);
+      let comparison = 0;
+
+      if (sortField === "date") {
+        const dateA = a.date || "";
+        const dateB = b.date || "";
+        comparison = dateA.localeCompare(dateB);
+      } else if (sortField === "type") {
+        const typeA = a.subType ? `${a.type} ${a.subType}` : a.type;
+        const typeB = b.subType ? `${b.type} ${b.subType}` : b.type;
+        comparison = typeA.localeCompare(typeB);
+      } else if (sortField === "status") {
+        const statusA = a.status || "";
+        const statusB = b.status || "";
+        comparison = statusA.localeCompare(statusB);
       }
-      return dateB.localeCompare(dateA);
+
+      return sortOrder === "asc" ? comparison : -comparison;
     });
-  }, [leaves, lateRequests, corrections, sortOrder]);
+  }, [leaves, lateRequests, corrections, sortField, sortOrder]);
 
   // Helper: Format "2026-08-11" -> "11. Aug. 2026"
   const formatDate = (dateStr: string) => {
@@ -125,51 +184,47 @@ const RequestsHistory = () => {
       return dateStr;
     }
   };
-  // const formatDate = (dateStr: string) => {
-  //   if (!dateStr) return "--";
-  //   try {
-  //     const [year, month, day] = dateStr.split("-");
-  //     return `${day}/${month}/${year}`;
-  //   } catch {
-  //     return dateStr;
-  //   }
-  // };
-
-  // Toggle Sorting
-  const toggleDateSort = () => {
-    setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
-  };
 
   return (
     <div className="w-full font-poppins text-black">
       {/* Outer Table Container */}
       <div className="border border-[#E5DEC9] bg-transparent overflow-hidden rounded-xs">
         {/* =========================================
-            TABLE HEADER
+            TABLE HEADER (SORTABLE)
         ========================================= */}
-        <div className="grid grid-cols-12 items-center px-5 py-4 border-b border-[#E5DEC9] text-[#8C827A] text-xs font-normal">
-          {/* Column 1: Request Type */}
-          <div className="col-span-5 flex items-center gap-1">
-            <span>Request Type</span>
-            <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
-          </div>
-
-          {/* Column 2: Date (Clickable to Sort) */}
+        <div className="grid grid-cols-12 items-center px-5 py-4 border-b border-[#E5DEC9] text-[#8C827A] text-xs font-normal select-none">
+          {/* Column 1: Request Type (Alphabetical Sort) */}
           <button
             type="button"
-            onClick={toggleDateSort}
-            className="col-span-3 flex items-center justify-center gap-1 cursor-pointer hover:text-[#231F20] transition select-none text-center"
-            title="Click to sort by date"
+            onClick={() => handleSort("type")}
+            className="col-span-4 flex items-center gap-1 cursor-pointer hover:text-[#231F20] transition text-left"
+            title="Sort alphabetically by request type"
           >
-            <span>Date</span>
-            <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
+            <span>Request Type</span>
+            <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />
           </button>
 
-          {/* Column 3: Status */}
-          <div className="col-span-4 flex items-center justify-end gap-1 text-right">
+          {/* Column 2: Date (Chronological Sort) */}
+          <button
+            type="button"
+            onClick={() => handleSort("date")}
+            className="col-span-5 flex items-center justify-center gap-1 cursor-pointer hover:text-[#231F20] transition text-center"
+            title="Sort by date"
+          >
+            <span>Date</span>
+            <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />
+          </button>
+
+          {/* Column 3: Status (Alphabetical Sort) */}
+          <button
+            type="button"
+            onClick={() => handleSort("status")}
+            className="col-span-3 flex items-center justify-end gap-1 cursor-pointer hover:text-[#231F20] transition text-right"
+            title="Sort by status"
+          >
             <span>Status</span>
-            <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
-          </div>
+            <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />
+          </button>
         </div>
 
         {/* =========================================
@@ -190,37 +245,64 @@ const RequestsHistory = () => {
             {combinedRequests.map((item) => {
               const isApproved = item.status === "approved";
               const isDenied = item.status === "denied";
+              const isMultiDay =
+                item.endDate &&
+                item.endDate !== item.date &&
+                item.type === "Leave";
 
               return (
                 <div
                   key={item.id}
-                  className="grid grid-cols-12 items-center px-5 py-4.5 gap-2 text-[10px]"
+                  className="grid grid-cols-12 items-center px-5 py-4 gap-2 text-[10px]"
                 >
-                  {/* Column 1: Request Type */}
-                  <div className="col-span-5 font-semibold text-[#231F20] tracking-wide leading-snug max-w-27">
-                    {item.type}
+                  {/* Column 1: Request Type + Subtype */}
+                  <div className="col-span-4 flex flex-col justify-center max-w-27 gap-1.5">
+                    <span className="font-semibold text-[#231F20] tracking-wide leading-snug">
+                      {item.type}
+                    </span>
+                    {item.subType && (
+                      <span className="text-[10px] opacity-60 font-normal leading-tight">
+                        {item.subType}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Column 2: Date (e.g. 31. Dec. 2022) */}
-                  <div className="col-span-3 text-[#7A8B99] font-normal text-center text-[10px]">
-                    {formatDate(item.date)}
+                  {/* Column 2: Date / Date Range (Multi-line) + Time Details */}
+                  <div className="col-span-5 flex flex-col items-center justify-center text-center gap-1.5">
+                    {isMultiDay ? (
+                      <div className="flex flex-col items-center leading-tight">
+                        <span className="font-normal text-[10px]">
+                          {formatDate(item.date)} -
+                        </span>
+                        <span className="font-normal text-[10px]">
+                          {formatDate(item.endDate as string)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-normal text-[10px] leading-tight">
+                        {formatDate(item.date)}
+                      </span>
+                    )}
+
+                    {item.timeInfo && (
+                      <span className="text-[10px] opacity-60 font-normal leading-tight whitespace-nowrap mt-0.5">
+                        {item.timeInfo}
+                      </span>
+                    )}
                   </div>
 
                   {/* Column 3: Status Badge */}
-                  <div className="col-span-4 flex justify-end">
+                  <div className="col-span-3 flex justify-end">
                     {isApproved ? (
                       <div className="bg-[#F28B31] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
-                        {/* <Check className="w-2.5 h-2.5 stroke-3 shrink-0" /> */}
                         <span>Approved</span>
                       </div>
                     ) : isDenied ? (
                       <div className="bg-[#D64545] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
-                        {/* <Ban className="w-2.5 h-2.5 shrink-0" /> */}
                         <span>Denied</span>
                       </div>
                     ) : (
                       <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
-                        {/* <Clock className="w-2.5 h-2.5 shrink-0" /> */}
                         <span>Pending</span>
                       </div>
                     )}
