@@ -9,6 +9,7 @@ import {
   Loader2,
   Check,
   CalendarDays,
+  HeartPulse,
 } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -22,11 +23,13 @@ const ProfileInfoForm = () => {
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
 
   // Emergency Contact States
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [emergencyRelationship, setEmergencyRelationship] = useState("");
+  // const [emergencyBloodGroup, setEmergencyBloodGroup] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -43,11 +46,14 @@ const ProfileInfoForm = () => {
       // @ts-expect-error custom fields
       setAddress(userData?.address || "");
       // @ts-expect-error custom fields
+      setBloodGroup(userData?.bloodGroup || "");
+      // @ts-expect-error custom fields
       setEmergencyName(userData?.emergencyContact?.name || "");
       // @ts-expect-error custom fields
       setEmergencyContact(userData?.emergencyContact?.contact || "");
       // @ts-expect-error custom fields
       setEmergencyRelationship(userData?.emergencyContact?.relationship || "");
+      // setEmergencyBloodGroup(userData?.emergencyContact?.bloodGroup || "");
     }
   }, [userData]);
 
@@ -63,10 +69,11 @@ const ProfileInfoForm = () => {
       const userDocRef = doc(db, "users", user.uid);
 
       await updateDoc(userDocRef, {
-        name,
+        // name,
         dob,
         phone,
         address,
+        bloodGroup,
         emergencyContact: {
           name: emergencyName,
           contact: emergencyContact,
@@ -109,9 +116,10 @@ const ProfileInfoForm = () => {
               type="text"
               placeholder="e.g. Mehul Kumar Chaudhary"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+              // onChange={(e) => setName(e.target.value)}
+              // required
               className="w-full bg-transparent text-xs md:text-sm text-[#231F20] font-medium focus:outline-none placeholder-[#C4BCB1]"
+              readOnly
             />
           </div>
         </div>
@@ -177,6 +185,26 @@ const ProfileInfoForm = () => {
         </div>
 
         {/* =========================================
+            5. Blood Group
+        ========================================= */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] text-[#8C827A] font-normal">
+            Blood Group
+          </label>
+          <div className="border border-[#E5DEC9] px-4 py-3.5 flex items-center gap-3">
+            <HeartPulse className="w-5 h-5 text-[#E78B38] shrink-0 stroke-[1.8]" />
+            <input
+              type="text"
+              // placeholder="e.g. Mehul Kumar Chaudhary"
+              value={bloodGroup}
+              onChange={(e) => setBloodGroup(e.target.value)}
+              required
+              className="w-full bg-transparent text-xs md:text-sm text-[#231F20] font-medium focus:outline-none placeholder-[#C4BCB1]"
+            />
+          </div>
+        </div>
+
+        {/* =========================================
             5. EMERGENCY CONTACT SECTION
         ========================================= */}
         <div className="bg-[#F79839]/20 p-5 rounded-xs flex flex-col gap-4">
@@ -187,8 +215,8 @@ const ProfileInfoForm = () => {
 
           <div className="flex flex-col gap-3 text-xs md:text-sm text-[#231F20]">
             {/* Name */}
-            <div className="flex items-center gap-2">
-              <span className="font-semibold w-22 shrink-0">Name:</span>
+            <div className="flex items-center gap-5">
+              <span className="font-semibold w-24 shrink-0">Name:</span>
               <input
                 type="text"
                 value={emergencyName}
@@ -198,8 +226,8 @@ const ProfileInfoForm = () => {
             </div>
 
             {/* Contact */}
-            <div className="flex items-center gap-2">
-              <span className="font-semibold w-22 shrink-0">Contact:</span>
+            <div className="flex items-center gap-5">
+              <span className="font-semibold w-24 shrink-0">Contact:</span>
               <input
                 type="tel"
                 value={emergencyContact}
@@ -209,8 +237,8 @@ const ProfileInfoForm = () => {
             </div>
 
             {/* Relationship */}
-            <div className="flex items-center gap-2">
-              <span className="font-semibold w-22 shrink-0">Relationship:</span>
+            <div className="flex items-center gap-5">
+              <span className="font-semibold w-24 shrink-0">Relationship:</span>
               <input
                 type="text"
                 value={emergencyRelationship}

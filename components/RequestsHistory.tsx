@@ -120,11 +120,20 @@ const RequestsHistory = () => {
       const monthFormatted = date.toLocaleDateString("en-GB", {
         month: "short",
       });
-      return `${dayFormatted}. ${monthFormatted}. ${year}`;
+      return `${dayFormatted} ${monthFormatted} ${year}`;
     } catch {
       return dateStr;
     }
   };
+  // const formatDate = (dateStr: string) => {
+  //   if (!dateStr) return "--";
+  //   try {
+  //     const [year, month, day] = dateStr.split("-");
+  //     return `${day}/${month}/${year}`;
+  //   } catch {
+  //     return dateStr;
+  //   }
+  // };
 
   // Toggle Sorting
   const toggleDateSort = () => {
@@ -153,11 +162,6 @@ const RequestsHistory = () => {
             title="Click to sort by date"
           >
             <span>Date</span>
-            {/* {sortOrder === "desc" ? (
-              <ArrowDown className="w-3.5 h-3.5 text-brand-orange" />
-            ) : (
-              <ArrowUp className="w-3.5 h-3.5 text-brand-orange" />
-            )} */}
             <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
           </button>
 
@@ -205,18 +209,18 @@ const RequestsHistory = () => {
                   {/* Column 3: Status Badge */}
                   <div className="col-span-4 flex justify-end">
                     {isApproved ? (
-                      <div className="bg-[#F28B31] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-17">
-                        <Check className="w-2.5 h-2.5 stroke-3 shrink-0" />
+                      <div className="bg-[#F28B31] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
+                        {/* <Check className="w-2.5 h-2.5 stroke-3 shrink-0" /> */}
                         <span>Approved</span>
                       </div>
                     ) : isDenied ? (
-                      <div className="bg-[#D64545] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-17">
-                        <Ban className="w-2.5 h-2.5 shrink-0" />
+                      <div className="bg-[#D64545] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
+                        {/* <Ban className="w-2.5 h-2.5 shrink-0" /> */}
                         <span>Denied</span>
                       </div>
                     ) : (
-                      <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-17">
-                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                      <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
+                        {/* <Clock className="w-2.5 h-2.5 shrink-0" /> */}
                         <span>Pending</span>
                       </div>
                     )}

@@ -26,10 +26,13 @@ const DashboardRequests = () => {
           <Image src={leaveApply} alt="" className="mx-auto mb-4 w-10 h-10" />
           <span className="capitalize text-[12px]">Apply for leave</span>
         </Link>
-        <div className="bg-brand-black px-5 py-8 text-center flex-1">
+        <Link
+          href={"/leaves"}
+          className="bg-brand-black px-5 py-8 text-center flex-1"
+        >
           <Image src={halfdayApply} alt="" className="mx-auto mb-4 w-10 h-10" />
           <span className="capitalize text-[12px]">apply for half day</span>
-        </div>
+        </Link>
       </div>
     </div>
   );

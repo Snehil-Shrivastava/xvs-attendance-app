@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="h-screen relative font-poppins px-8">
+    <div className="h-screen relative font-poppins px-8 bg-brand-black">
       {/* Background vector */}
       <Image
         src={bgImg}
