@@ -257,11 +257,19 @@ const PendingRequests = () => {
                         }
                         className="bg-transparent text-[8px] text-[#231F20] font-medium appearance-none focus:outline-none cursor-pointer px-1.5 pr-5.5 select-none"
                       >
-                        <option value="pending" disabled>
+                        <option
+                          className="bg-background"
+                          value="pending"
+                          disabled
+                        >
                           Pending
                         </option>
-                        <option value="approved">Approve</option>
-                        <option value="denied">Deny</option>
+                        <option className="bg-background" value="approved">
+                          Approve
+                        </option>
+                        <option className="bg-background" value="denied">
+                          Deny
+                        </option>
                       </select>
                       <ChevronDown className="w-3.5 h-3.5 text-[#231F20] pointer-events-none absolute right-1.5" />
                     </div>
