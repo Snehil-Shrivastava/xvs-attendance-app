@@ -42,7 +42,7 @@ const LateRequestForm = () => {
         date: date, // "2026-08-11"
         newArrivalTime: newArrivalTime, // "10:00 AM"
         reason: reason,
-        status: "approved", // "pending" | "approved" | "denied"
+        status: "pending", // "pending" | "approved" | "denied"
         createdAt: serverTimestamp(),
       });
 
