@@ -19,13 +19,14 @@ const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
   const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<MonthlyStats | null>(null);
   const [monthLeaveDays, setMonthLeaveDays] = useState(0);
+  const [monthHalfDays, setMonthHalfDays] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
 
-    // 1. Listen to Monthly Summary (Late, Half Days, Overtime)
+    // 1. Listen to Monthly Summary (Late, Biometric Half Days, Overtime)
     const summaryDocRef = doc(
       db,
       "monthly_summaries",
@@ -39,45 +40,59 @@ const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
       }
     });
 
-    // 2. Listen to `leaves` collection to calculate leaves for THIS specific month
+    // 2. Listen to `leaves` collection to calculate leaves & half days for THIS month
     const leavesQuery = query(
       collection(db, "leaves"),
       where("userId", "==", user.uid),
     );
 
     const unsubscribeLeaves = onSnapshot(leavesQuery, (snapshot) => {
-      let daysCount = 0;
+      let fullLeaveCount = 0;
+      let halfDayCount = 0;
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.status === "approved") {
+          const isHalfDay =
+            data.leaveType === "Half Day" ||
+            data.durationType === "half" ||
+            data.totalDays === 0.5;
+
           const start = data.startDate; // "2026-08-11"
           const end = data.endDate; // "2026-08-13"
 
-          // Count how many days of this leave fall into currentMonth
-          if (start && end) {
-            const startDate = new Date(start);
-            const endDate = new Date(end);
-            const curDate = new Date(startDate);
+          if (isHalfDay) {
+            // Check if Half Day date falls into currently selected month
+            if (start && start.startsWith(currentMonth)) {
+              halfDayCount++;
+            }
+          } else {
+            // Full Leave: Count weekdays falling into currently selected month
+            if (start && end) {
+              const startDate = new Date(start);
+              const endDate = new Date(end);
+              const curDate = new Date(startDate);
 
-            while (curDate <= endDate) {
-              const yyyyMm = curDate.toISOString().slice(0, 7);
-              const dayOfWeek = curDate.getDay();
-              // Count if in current month and is a weekday (Mon-Fri)
-              if (
-                yyyyMm === currentMonth &&
-                dayOfWeek !== 0 &&
-                dayOfWeek !== 6
-              ) {
-                daysCount++;
+              while (curDate <= endDate) {
+                const yyyyMm = curDate.toISOString().slice(0, 7);
+                const dayOfWeek = curDate.getDay();
+
+                if (
+                  yyyyMm === currentMonth &&
+                  dayOfWeek !== 0 &&
+                  dayOfWeek !== 6
+                ) {
+                  fullLeaveCount++;
+                }
+                curDate.setDate(curDate.getDate() + 1);
               }
-              curDate.setDate(curDate.getDate() + 1);
             }
           }
         }
       });
 
-      setMonthLeaveDays(daysCount);
+      setMonthLeaveDays(fullLeaveCount);
+      setMonthHalfDays(halfDayCount);
       setLoading(false);
     });
 
@@ -90,7 +105,11 @@ const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
   const isLoading = authLoading || loading;
 
   const lateCount = String(stats?.lateDays ?? 0).padStart(2, "0");
-  const halfDaysCount = String(stats?.halfDays ?? 0).padStart(2, "0");
+
+  // Combines approved Half Day requests + any biometric Half Days
+  const totalHalfDays = monthHalfDays + (stats?.halfDays ?? 0);
+  const halfDaysCount = String(totalHalfDays).padStart(2, "0");
+
   const leaveCount = String(monthLeaveDays).padStart(2, "0");
   const overtimeMins = stats?.overtimeMinutes ?? 0;
 
