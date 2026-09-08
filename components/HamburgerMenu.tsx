@@ -16,6 +16,8 @@ import leavesSVG from "@/public/apply-for-leave.svg";
 import laterArrivalSVG from "@/public/late-arrival.svg";
 import requestsSVG from "@/public/requests.svg";
 import profileSVG from "@/public/profile.svg";
+import teamSVG from "@/public/teamSVG.svg";
+import calendarSVG from "@/public/calendarSVG.svg";
 
 // Nav items (excluding Logout)
 const NAV_ITEMS = [
@@ -27,11 +29,16 @@ const NAV_ITEMS = [
   { label: "Profile", href: "/my-profile", icon: profileSVG },
 ];
 
+const ADMIN_CONTROLS = [
+  { label: "Team", href: "/team", icon: teamSVG },
+  { label: "Calendar", href: "/calendar", icon: calendarSVG },
+];
+
 const HamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, userData } = useAuth();
 
   // Handle SSR portal mounting
   useEffect(() => {
@@ -66,6 +73,8 @@ const HamburgerMenu = () => {
     }
   };
 
+  const isAdmin = userData?.role === "admin";
+
   const overlay = (
     <div
       className={`fixed inset-0 z-50 h-screen w-full max-w-106.25 mx-auto bg-brand-black transition-all duration-300 ease-in-out select-none ${
@@ -98,7 +107,7 @@ const HamburgerMenu = () => {
         <hr className="my-8 border-neutral-600/50 border" />
 
         {/* Navigation Links */}
-        <nav className="flex flex-col gap-7">
+        <nav className="flex flex-col gap-7 overflow-y-auto">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.label}
@@ -110,6 +119,19 @@ const HamburgerMenu = () => {
               <span>{item.label}</span>
             </Link>
           ))}
+
+          {isAdmin &&
+            ADMIN_CONTROLS.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className="text-brand-orange text-lg capitalize tracking-wider flex items-center gap-5 hover:opacity-80 transition-opacity"
+              >
+                <Image src={item.icon} alt="" className="w-6 h-6" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
 
           {/* =========================================
               LOGOUT BUTTON

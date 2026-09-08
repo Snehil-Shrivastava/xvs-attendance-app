@@ -23,9 +23,9 @@ const auth = getAuth();
 const db = getFirestore();
 
 async function seedAdmin() {
-  const userId = "1001";
-  const email = "snehil.shrivastava@xvscreations.com";
-  const name = "Snehil Shrivastava";
+  const userId = "1002";
+  const email = "info@xyz.com";
+  const name = "Jane Doe";
   const password = "xvscreations@2016";
 
   const currentYear = new Date().getFullYear(); // 2026
@@ -65,8 +65,8 @@ async function seedAdmin() {
           userId: userId,
           name: name,
           email: email,
-          department: "Web Development",
-          role: "admin",
+          department: "Marketing",
+          role: "employee",
           mustChangePassword: false,
           isActive: true,
           // Shift & 30-min Monthly Grace
