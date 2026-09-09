@@ -218,7 +218,7 @@ const AttendanceCalendarView = ({
     }
 
     if ((record.overtimeMinutes ?? 0) > 0) {
-      return "bg-[#4BA7E3] text-white font-medium"; // Overtime (Blue)
+      return "bg-[#55B5E5] text-white font-medium"; // Overtime (Blue)
     }
 
     switch (record.status) {
@@ -291,7 +291,7 @@ const AttendanceCalendarView = ({
             <span>WFM</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 bg-[#4BA7E3] shrink-0" />
+            <span className="w-3.5 h-3.5 bg-[#55B5E5] shrink-0" />
             <span>Overtime</span>
           </div>
 

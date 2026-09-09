@@ -1,7 +1,11 @@
+import TeamHeader from "@/components/TeamHeader";
+import TeamMemberList from "@/components/TeamMemberList";
+
 const TeamPage = () => {
   return (
     <div className="text-black py-10 px-5">
-      <div>TeamPage</div>
+      <TeamHeader />
+      <TeamMemberList />
     </div>
   );
 };

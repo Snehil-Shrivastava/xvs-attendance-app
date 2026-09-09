@@ -9,6 +9,7 @@ export interface UserProfile {
   userId: string;
   name: string;
   email: string;
+  photoURL?: string;
   department: string;
   role: "employee" | "admin";
   mustChangePassword?: boolean;

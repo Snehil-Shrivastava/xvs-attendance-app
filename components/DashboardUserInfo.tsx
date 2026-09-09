@@ -100,7 +100,7 @@ const DashboardUserInfo = ({
             alt={userData?.name || "Employee Avatar"}
             width={80}
             height={80}
-            className="w-20 h-20 object-cover"
+            className="w-20 h-20 object-cover select-none"
           />
           {isProfilePage && (
             <div className="absolute rounded-full border-4 border-brand-black bg-brand-orange -top-2 -right-2 p-0.5">
@@ -112,7 +112,7 @@ const DashboardUserInfo = ({
         <div className="flex flex-col">
           {/* Employee Name */}
           <h2
-            className="text-xl font-calSans tracking-wider"
+            className="text-xl font-calSans tracking-wider select-none"
             title={userData?.name || "Employee Name"}
           >
             {/* @ts-expect-error unknown */}
