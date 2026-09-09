@@ -135,7 +135,7 @@ const AddOvertimeModal = ({
                 <label className="block text-[11px] text-[#8C827A] mb-1.5">
                   Date
                 </label>
-                <div className="relative flex items-center bg-[#FAF6EC] border border-[#E5DEC9]">
+                <div className="relative flex items-center bg-background border border-[#E5DEC9]">
                   <input
                     type="date"
                     value={date}
@@ -155,7 +155,7 @@ const AddOvertimeModal = ({
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {/* Hours Dropdown */}
-                  <div className="relative flex items-center bg-[#FAF6EC] border border-[#E5DEC9]">
+                  <div className="relative flex items-center bg-background border border-[#E5DEC9]">
                     <select
                       value={hours}
                       onChange={(e) => setHours(Number(e.target.value))}
@@ -172,7 +172,7 @@ const AddOvertimeModal = ({
                   </div>
 
                   {/* Minutes Dropdown */}
-                  <div className="relative flex items-center bg-[#FAF6EC] border border-[#E5DEC9]">
+                  <div className="relative flex items-center bg-background border border-[#E5DEC9]">
                     <select
                       value={minutes}
                       onChange={(e) => setMinutes(Number(e.target.value))}

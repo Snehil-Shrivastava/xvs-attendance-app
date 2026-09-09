@@ -2,13 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  Minimize2,
-} from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import editIcon from "@/public/edit-icon.svg";
 import AddOvertimeModal from "./AddOvertimeModal";
 import AttendanceStats from "@/components/AttendanceStats";
