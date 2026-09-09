@@ -1,5 +1,6 @@
 "use client";
 
+import AdminProcessedRequests from "@/components/AdminProcessedRequests";
 import PendingRequests from "@/components/PendingRequests";
 import RequestsHistory from "@/components/RequestsHistory";
 import { useAuth } from "@/context/AuthContext";
@@ -10,7 +11,8 @@ const RequestsPage = () => {
   return (
     <div className="py-10 px-5 text-black">
       {isAdmin && <PendingRequests />}
-      <RequestsHistory />
+      {isAdmin ? <AdminProcessedRequests /> : <RequestsHistory />}
+      {/* <RequestsHistory /> */}
     </div>
   );
 };

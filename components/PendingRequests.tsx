@@ -30,6 +30,37 @@ const getFirstName = (fullName: string) => {
   return fullName.trim().split(" ")[0] || "Employee";
 };
 
+// Helper: Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM" (same as RequestsHistory)
+const formatTimeStr = (t?: string | null) => {
+  if (!t) return "";
+  if (t.includes("AM") || t.includes("PM")) return t;
+  try {
+    const [h, m] = t.split(":");
+    let hours = parseInt(h, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${String(hours).padStart(2, "0")}:${m} ${ampm}`;
+  } catch {
+    return t;
+  }
+};
+
+// Helper: Format "2026-08-11" -> "11 Aug 2026" (same as RequestsHistory)
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return "--";
+  try {
+    const [year, month, day] = dateStr.split("-");
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    const dayFormatted = String(date.getDate()).padStart(2, "0");
+    const monthFormatted = date.toLocaleDateString("en-GB", {
+      month: "short",
+    });
+    return `${dayFormatted} ${monthFormatted} ${year}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 const PendingRequests = () => {
   const { user, userData } = useAuth();
   const [requests, setRequests] = useState<PendingItem[]>([]);
@@ -71,6 +102,36 @@ const PendingRequests = () => {
     };
 
     // 1. Listen to pending leaves
+    // const qLeaves = query(
+    //   collection(db, "leaves"),
+    //   where("status", "==", "pending"),
+    // );
+    // const unsubLeaves = onSnapshot(qLeaves, (snapshot) => {
+    //   allLeaves = [];
+    //   snapshot.forEach((docSnap) => {
+    //     const data = docSnap.data();
+    //     const dateDetail =
+    //       data.startDate === data.endDate
+    //         ? `Date: ${data.startDate}`
+    //         : `${data.startDate} - ${data.endDate}`;
+
+    //     allLeaves.push({
+    //       id: docSnap.id,
+    //       collectionName: "leaves",
+    //       userId: data.userId || "---",
+    //       name: data.name || "Employee",
+    //       type: data.leaveType || "Leave",
+    //       detail:
+    //         data.fromTime && data.toTime
+    //           ? `${data.fromTime} - ${data.toTime}`
+    //           : dateDetail,
+    //       appliedAt: formatAppliedTime(data.createdAt),
+    //       status: data.status || "pending",
+    //     });
+    //   });
+    //   updateCombined();
+    // });
+    // 1. Listen to pending leaves
     const qLeaves = query(
       collection(db, "leaves"),
       where("status", "==", "pending"),
@@ -79,10 +140,17 @@ const PendingRequests = () => {
       allLeaves = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+
         const dateDetail =
           data.startDate === data.endDate
-            ? `Date: ${data.startDate}`
-            : `${data.startDate} - ${data.endDate}`;
+            ? `Date: ${formatDate(data.startDate)}`
+            : `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`;
+
+        // ✅ FIX: when a time range exists (half day), keep the DATE too
+        const timeDetail =
+          data.fromTime && data.toTime
+            ? `${formatDate(data.startDate)} | ${formatTimeStr(data.fromTime)} - ${formatTimeStr(data.toTime)}`
+            : null;
 
         allLeaves.push({
           id: docSnap.id,
@@ -90,10 +158,7 @@ const PendingRequests = () => {
           userId: data.userId || "---",
           name: data.name || "Employee",
           type: data.leaveType || "Leave",
-          detail:
-            data.fromTime && data.toTime
-              ? `${data.fromTime} - ${data.toTime}`
-              : dateDetail,
+          detail: timeDetail ?? dateDetail,
           appliedAt: formatAppliedTime(data.createdAt),
           status: data.status || "pending",
         });
@@ -116,7 +181,7 @@ const PendingRequests = () => {
           userId: data.userId || "---",
           name: data.name || "Employee",
           type: "Late Request",
-          detail: `Arriving at: ${data.newArrivalTime || "10:00 AM"}`,
+          detail: `Arriving at: ${formatTimeStr(data.newArrivalTime || "10:00 AM")}`,
           appliedAt: formatAppliedTime(data.createdAt),
           status: data.status || "pending",
         });
@@ -139,7 +204,7 @@ const PendingRequests = () => {
           userId: data.userId || "---",
           name: data.name || "Employee",
           type: "Attendance Correction",
-          detail: `Date: ${data.date || ""}`,
+          detail: `Date: ${formatDate(data.date || "")}`,
           appliedAt: formatAppliedTime(data.createdAt),
           status: data.status || "pending",
         });
@@ -219,7 +284,7 @@ const PendingRequests = () => {
                   <span className="font-normal text-[8px] text-[#231F20]">
                     {item.type}
                   </span>
-                  <span className="text-[8px] text-[#8C827A] font-light truncate">
+                  <span className="text-[8px] text-[#8C827A] font-light leading-snug">
                     {item.detail}
                   </span>
                 </div>
