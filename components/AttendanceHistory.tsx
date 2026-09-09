@@ -20,8 +20,13 @@ interface DailyRecord {
     | "On Leave";
 }
 
-const AttendanceHistory = () => {
+interface AttendanceHistoryProps {
+  targetUserId?: string;
+}
+
+const AttendanceHistory = ({ targetUserId }: AttendanceHistoryProps) => {
   const { user } = useAuth();
+  const effectiveUid = targetUserId || user?.uid;
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +36,7 @@ const AttendanceHistory = () => {
     // 1. Query daily_attendance for the logged-in employee
     const q = query(
       collection(db, "daily_attendance"),
-      where("userId", "==", user.uid),
+      where("userId", "==", effectiveUid),
     );
 
     const unsubscribe = onSnapshot(
@@ -90,7 +95,7 @@ const AttendanceHistory = () => {
       {/* Main Table Card */}
       <div className="border border-[#E5DEC9] bg-transparent overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-3 items-center px-6 py-4 border-b border-[#E5DEC9] text-[#231F20] text-[10px] font-semibold">
+        <div className="grid grid-cols-3 items-center px-3 py-4 border-b border-[#E5DEC9] text-[#231F20] text-[12px] font-semibold">
           <div>Date</div>
           <div className="text-center">Check-in</div>
           <div className="text-right">Actions</div>
@@ -114,7 +119,7 @@ const AttendanceHistory = () => {
               return (
                 <div
                   key={record.id}
-                  className="grid grid-cols-3 items-center px-6 py-4"
+                  className="grid grid-cols-3 items-center px-3 py-4"
                 >
                   {/* Column 1: Date */}
                   <div className="font-semibold text-xs tracking-wide">
@@ -133,12 +138,12 @@ const AttendanceHistory = () => {
                   {/* Column 3: Status Badge */}
                   <div className="flex justify-end">
                     {isLate ? (
-                      <div className="bg-[#C23C3C] text-white text-xs font-medium px-2 py-1.5 flex items-center justify-center gap-1.5 rounded-xs shadow-xs">
+                      <div className="bg-[#C23C3C] text-white text-[10px] font-medium px-2 py-1 flex items-center justify-center gap-1.5">
                         <XCircle className="w-3 h-3 shrink-0" />
                         <span>Late</span>
                       </div>
                     ) : (
-                      <div className="bg-[#F28B31] text-white text-xs font-medium px-2 py-1.5 flex items-center justify-center gap-1.5 rounded-xs shadow-xs">
+                      <div className="bg-[#F28B31] text-white text-[10px] font-medium px-2 py-1 flex items-center justify-center gap-1.5">
                         <Check className="w-3 h-3 shrink-0 stroke-3" />
                         <span>On Time</span>
                       </div>

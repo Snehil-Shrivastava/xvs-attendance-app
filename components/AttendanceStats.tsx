@@ -13,10 +13,15 @@ interface MonthlyStats {
 
 interface AttendanceStatsProps {
   currentMonth: string; // e.g. "2026-08"
+  targetUserId?: string;
 }
 
-const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
+const AttendanceStats = ({
+  currentMonth,
+  targetUserId,
+}: AttendanceStatsProps) => {
   const { user, loading: authLoading } = useAuth();
+  const effectiveUid = targetUserId || user?.uid;
   const [stats, setStats] = useState<MonthlyStats | null>(null);
   const [monthLeaveDays, setMonthLeaveDays] = useState(0);
   const [monthHalfDays, setMonthHalfDays] = useState(0);
@@ -30,7 +35,7 @@ const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
     const summaryDocRef = doc(
       db,
       "monthly_summaries",
-      `${currentMonth}_${user.uid}`,
+      `${currentMonth}_${effectiveUid}`,
     );
     const unsubscribeSummary = onSnapshot(summaryDocRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -43,7 +48,7 @@ const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
     // 2. Listen to `leaves` collection to calculate leaves & half days for THIS month
     const leavesQuery = query(
       collection(db, "leaves"),
-      where("userId", "==", user.uid),
+      where("userId", "==", effectiveUid),
     );
 
     const unsubscribeLeaves = onSnapshot(leavesQuery, (snapshot) => {
@@ -100,7 +105,7 @@ const AttendanceStats = ({ currentMonth }: AttendanceStatsProps) => {
       unsubscribeSummary();
       unsubscribeLeaves();
     };
-  }, [user, currentMonth]);
+  }, [user, currentMonth, effectiveUid]);
 
   const isLoading = authLoading || loading;
 

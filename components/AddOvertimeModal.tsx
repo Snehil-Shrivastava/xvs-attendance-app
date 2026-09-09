@@ -112,14 +112,6 @@ const AddOvertimeModal = ({
           <h3 className="text-white text-base font-normal tracking-wide">
             Add Overtime
           </h3>
-          {/* <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="absolute right-3 text-white/80 hover:text-white transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button> */}
         </div>
 
         {/* Modal Body */}
@@ -203,7 +195,7 @@ const AddOvertimeModal = ({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-[#231F20] hover:bg-[#151314] active:scale-[0.98] text-white px-8 py-2.5 text-xs font-semibold tracking-wider transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  className="bg-brand-black hover:bg-black active:scale-[0.98] text-white px-8 py-2.5 text-xs font-semibold tracking-wider transition-all disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
                   {submitting ? (
                     <>

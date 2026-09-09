@@ -23,6 +23,7 @@ interface DayRecord {
 interface AttendanceCalendarViewProps {
   currentDate: Date;
   currentMonthStr: string; // e.g. "2026-08"
+  targetUserId?: string;
 }
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -30,8 +31,10 @@ const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const AttendanceCalendarView = ({
   currentDate,
   currentMonthStr,
+  targetUserId,
 }: AttendanceCalendarViewProps) => {
   const { user } = useAuth();
+  const effectiveUid = targetUserId || user?.uid;
   const [monthlyRecords, setMonthlyRecords] = useState<
     Record<string, DayRecord>
   >({});
@@ -52,7 +55,7 @@ const AttendanceCalendarView = ({
     // 1. Listen to Daily Punches for this month
     const attendanceQuery = query(
       collection(db, "daily_attendance"),
-      where("userId", "==", user.uid),
+      where("userId", "==", effectiveUid),
       where("month", "==", currentMonthStr),
     );
 
@@ -68,7 +71,7 @@ const AttendanceCalendarView = ({
     // 2. Listen to `leaves` collection (Full Leaves vs Half Days)
     const leavesQuery = query(
       collection(db, "leaves"),
-      where("userId", "==", user.uid),
+      where("userId", "==", effectiveUid),
     );
 
     const unsubscribeLeaves = onSnapshot(leavesQuery, (snapshot) => {
@@ -127,7 +130,7 @@ const AttendanceCalendarView = ({
       unsubscribeLeaves();
       unsubscribeHolidays();
     };
-  }, [user, currentMonthStr]);
+  }, [user, currentMonthStr, effectiveUid]);
 
   // Build Calendar Days Array
   const calendarDays = useMemo(() => {
@@ -244,9 +247,9 @@ const AttendanceCalendarView = ({
   return (
     <div className="w-full font-poppins text-black">
       {/* Calendar Grid Container */}
-      <div className="bg-[#F7F3EB]/40">
+      <div className="">
         {/* Weekday Column Headers */}
-        <div className="grid grid-cols-7 text-center py-3 bg-transparent">
+        <div className="grid grid-cols-7 text-center py-3 bg-transparent border-b border-[#E5DEC9]">
           {WEEKDAYS.map((day) => (
             <span key={day} className="font-semibold text-xs text-[#231F20]">
               {day}
@@ -262,7 +265,7 @@ const AttendanceCalendarView = ({
             return (
               <div
                 key={index}
-                className={`aspect-square border-r border-b border-[#E5DEC9] flex items-center justify-center text-xs md:text-sm select-none transition-colors ${styleClass}`}
+                className={`aspect-square border-l border-r border-b border-[#E5DEC9] flex items-center justify-center text-xs md:text-sm select-none transition-colors ${styleClass}`}
               >
                 {day.dayNumber}
               </div>

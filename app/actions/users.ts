@@ -225,3 +225,86 @@ export async function createTeamMember(
 
   return { success: true, userId };
 }
+
+export interface UpdateMemberProfileInput {
+  targetDocId: string; // the original Firestore doc ID
+  department: string;
+  userId: string;
+  dob: string;
+  phone: string;
+  panNumber: string;
+  adhaarNumber: string;
+  email: string;
+  emergencyContact: {
+    name: string;
+    relation: string;
+    phone: string;
+  };
+  address: string;
+}
+
+export async function updateTeamMemberProfile(
+  input: UpdateMemberProfileInput,
+  idToken: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Verify admin session
+    const decoded = await adminAuth.verifyIdToken(idToken);
+    const callerUid = decoded.uid;
+
+    const callerSnap = await adminDb.collection("users").doc(callerUid).get();
+    const isAdmin = callerSnap.exists && callerSnap.data()?.role === "admin";
+
+    if (!isAdmin && decoded.email) {
+      const emailSnap = await adminDb
+        .collection("users")
+        .where("email", "==", decoded.email)
+        .limit(1)
+        .get();
+      if (emailSnap.empty || emailSnap.docs[0].data()?.role !== "admin") {
+        return { success: false, error: "Admin access required." };
+      }
+    }
+
+    // 2. Update Firebase Auth email if changed
+    try {
+      await adminAuth.updateUser(input.targetDocId, {
+        email: input.email.trim().toLowerCase(),
+      });
+    } catch {
+      // Ignored if custom UID is different or email didn't change
+    }
+
+    // 3. Update Firestore Document
+    await adminDb
+      .collection("users")
+      .doc(input.targetDocId)
+      .set(
+        {
+          department: input.department.trim(),
+          userId: input.userId.trim(),
+          dob: input.dob.trim(),
+          phone: input.phone.trim(),
+          panNumber: input.panNumber.trim().toUpperCase(),
+          adhaarNumber: input.adhaarNumber.trim(),
+          email: input.email.trim().toLowerCase(),
+          emergencyContact: {
+            name: input.emergencyContact.name.trim(),
+            relation: input.emergencyContact.relation.trim(),
+            phone: input.emergencyContact.phone.trim(),
+          },
+          address: input.address.trim(),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("updateTeamMemberProfile error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update profile.",
+    };
+  }
+}
