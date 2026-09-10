@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { requestNotificationPermissionAndSaveToken } from "@/lib/fcm";
 
 export interface UserProfile {
   userId: string;
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(currentUser);
 
       if (currentUser) {
+        requestNotificationPermissionAndSaveToken(currentUser.uid);
         const userDocRef = doc(db, "users", currentUser.uid);
 
         // Real-time listener for profile changes (Name, photoUrl, etc.)
