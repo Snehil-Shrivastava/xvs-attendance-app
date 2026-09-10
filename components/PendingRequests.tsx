@@ -12,6 +12,7 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ChevronDown, Loader2 } from "lucide-react";
+import { sendPushNotificationToUser } from "@/app/actions/notifications";
 
 interface PendingItem {
   id: string;
@@ -202,6 +203,14 @@ const PendingRequests = () => {
         reviewedBy: user?.uid,
         reviewedAt: new Date().toISOString(),
       });
+      if (newStatus === "approved") {
+        await sendPushNotificationToUser({
+          targetUserId: item.userId,
+          title: "Attendance Correction Approved",
+          body: `Your attendance correction request for ${item.detail} has been approved.`,
+          url: "/attendance",
+        });
+      }
     } catch (error) {
       console.error("Error updating request status:", error);
     } finally {
