@@ -16,10 +16,10 @@ export async function sendPushNotificationToUser({
   url = "/attendance",
 }: SendApprovalPushInput) {
   try {
-    console.log(
-      "🔔 Preparing push notification for user identifier:",
-      targetUserId,
-    );
+    // console.log(
+    //   "🔔 Preparing push notification for user identifier:",
+    //   targetUserId,
+    // );
 
     let fcmTokens: string[] = [];
     let matchedDocId = targetUserId;
@@ -42,7 +42,7 @@ export async function sendPushNotificationToUser({
       }
     }
 
-    console.log(`Found ${fcmTokens.length} token(s) for user ${targetUserId}`);
+    // console.log(`Found ${fcmTokens.length} token(s) for user ${targetUserId}`);
 
     if (fcmTokens.length === 0) {
       console.warn(
@@ -75,9 +75,9 @@ export async function sendPushNotificationToUser({
       },
     });
 
-    console.log(
-      `Push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`,
-    );
+    // console.log(
+    //   `Push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`,
+    // );
 
     // 4. Clean up expired tokens if any
     const validTokens: string[] = [];

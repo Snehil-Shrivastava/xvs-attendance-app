@@ -17,7 +17,6 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("[SW] Background push received:", payload);
   const notificationTitle = payload.notification?.title || payload.data?.title || "Attendance Update";
   const notificationOptions = {
     body: payload.notification?.body || payload.data?.body || "Your request status has been updated.",
