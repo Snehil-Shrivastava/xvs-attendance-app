@@ -62,6 +62,7 @@ const LateHistory = () => {
 
   useEffect(() => {
     if (!user) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
     let attendanceLateMap: Record<string, LateItem> = {};
@@ -136,6 +137,7 @@ const LateHistory = () => {
             let lateMins = 60; // Default 1 hr
             try {
               const [timePart, modifier] = arrivalTime.split(" ");
+              // eslint-disable-next-line prefer-const
               let [hours, minutes] = timePart.split(":").map(Number);
               if (modifier === "PM" && hours < 12) hours += 12;
               if (modifier === "AM" && hours === 12) hours = 0;

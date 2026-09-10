@@ -152,7 +152,6 @@ const AdminCalendar = () => {
             HEADER (MONTH & NAV)
         ========================================= */}
         <div className="flex items-center justify-between mb-6">
-          {/* <h1 className="font-calSans text-2xl font-bold tracking-wide text-[#231F20]"> */}
           <h1 className="font-calSans text-xl tracking-wide select-none">
             {formattedMonthTitle}
           </h1>
@@ -178,10 +177,8 @@ const AdminCalendar = () => {
         {/* =========================================
             CALENDAR GRID
         ========================================= */}
-        {/* <div className="border border-[#E5DEC9] bg-[#F7F3EB]/40"> */}
-        <div className="">
+        <div>
           {/* Weekday Headers */}
-          {/* <div className="grid grid-cols-7 text-center py-3 border-b border-[#E5DEC9] bg-transparent"> */}
           <div className="grid grid-cols-7 text-center py-3">
             {WEEKDAYS.map((day) => (
               <span key={day} className="font-semibold text-xs text-[#231F20]">

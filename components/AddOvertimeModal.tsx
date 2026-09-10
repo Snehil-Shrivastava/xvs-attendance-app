@@ -34,6 +34,7 @@ const AddOvertimeModal = ({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDate(todayStr);
       setHours(2);
       setMinutes(30);

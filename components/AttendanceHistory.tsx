@@ -62,7 +62,7 @@ const AttendanceHistory = ({ targetUserId }: AttendanceHistoryProps) => {
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, effectiveUid]);
 
   // Helper: Format "2026-08-24" -> "24 Aug 2026"
   const formatDate = (dateStr: string) => {

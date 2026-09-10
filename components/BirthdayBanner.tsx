@@ -105,8 +105,6 @@ const BirthdayBanner = () => {
                 <Image
                   src={avatarSrc as string}
                   alt={`${person.name}'s profile`}
-                  //   width={22}
-                  //   height={22}
                   className="w-full h-full object-contain"
                   fill
                 />

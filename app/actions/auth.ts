@@ -1,4 +1,3 @@
-// src/app/actions/auth.ts
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin-file";

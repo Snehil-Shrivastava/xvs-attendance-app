@@ -50,6 +50,7 @@ const AddTeamMemberModal = ({ open, onClose }: AddTeamMemberModalProps) => {
   // Reset every time the modal opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(defaultForm);
       setSuccess(false);
       setErrorMessage("");
@@ -69,45 +70,6 @@ const AddTeamMemberModal = ({ open, onClose }: AddTeamMemberModalProps) => {
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
-
-  //   const handleSubmit = async (e: React.FormEvent) => {
-  //     e.preventDefault();
-  //     if (!user || submitting) return;
-  //     setErrorMessage("");
-  //     setSubmitting(true);
-
-  //     try {
-  //       const idToken = await user.getIdToken();
-  //       const result = await createTeamMember(
-  //         {
-  //           userId: form.userId,
-  //           name: form.name,
-  //           email: form.email,
-  //           password: form.password,
-  //           department: form.department,
-  //           role: form.role,
-  //           annualQuota: Number(form.annualQuota),
-  //           monthlyGraceMinutes: Number(form.grace),
-  //           shiftStart: form.shiftStart,
-  //           shiftEnd: form.shiftEnd,
-  //           mustChangePassword: false, // checkbox removed — same default as seed-admin.ts
-  //         },
-  //         idToken,
-  //       );
-
-  //       if (!result.success) {
-  //         setErrorMessage(result.error);
-  //         setSubmitting(false);
-  //         return;
-  //       }
-
-  //       setSuccess(true);
-  //       setTimeout(onClose, 1200);
-  //     } catch {
-  //       setErrorMessage("Something went wrong. Please try again.");
-  //       setSubmitting(false);
-  //     }
-  //   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

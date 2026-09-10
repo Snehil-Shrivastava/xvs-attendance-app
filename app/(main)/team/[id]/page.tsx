@@ -6,13 +6,7 @@ import Image from "next/image";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Calendar,
-  ChevronDown,
-  CheckCircle2,
-  Loader2,
-  ArrowLeft,
-} from "lucide-react";
+import { Calendar, ChevronDown, CheckCircle2, Loader2 } from "lucide-react";
 import { updateTeamMemberProfile } from "@/app/actions/users";
 
 interface UserProfileData {
@@ -162,16 +156,6 @@ export default function EditTeamMemberPage() {
   return (
     <div className="min-h-screen py-10 px-5 flex justify-center bg-background font-poppins">
       <div className="w-full max-w-md border border-[#E5DEC9] bg-background p-3 shadow-xs">
-        {/* Navigation & Cancel */}
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs text-[#8C827A] hover:text-[#231F20] transition mb-4 cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back</span>
-        </button>
-
         {/* Feedback Alerts */}
         {errorMessage && (
           <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-600 text-xs px-3 py-2">
@@ -191,19 +175,19 @@ export default function EditTeamMemberPage() {
             <Image
               src={photoURL}
               alt={name}
-              width={70}
-              height={70}
-              className="w-18 h-18 object-cover rounded-xs border border-[#E5DEC9] shrink-0 select-none"
+              width={60}
+              height={60}
+              className="w-15 h-15 object-cover rounded-xs border border-[#E5DEC9] shrink-0 select-none"
             />
 
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col justify-between gap-2 w-full h-inherit">
               {/* Read-Only Name */}
               <h2 className="text-xl font-calSans tracking-wide text-[#231F20] leading-tight select-none">
                 {name}
               </h2>
 
               {/* Editable Department & User ID */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-8 gap-2">
                 <input
                   type="text"
                   value={department}
@@ -211,7 +195,7 @@ export default function EditTeamMemberPage() {
                   placeholder="Designation"
                   required
                   disabled={saving}
-                  className="bg-background border border-[#E5DEC9] px-3 py-1.5 text-[10px] text-[#231F20] font-normal focus:outline-none focus:border-[#D97736]"
+                  className="bg-background border border-[#E5DEC9] px-3 py-1.5 text-[10px] text-[#231F20] font-normal focus:outline-none focus:border-[#D97736] col-span-5"
                 />
                 <input
                   type="text"
@@ -220,7 +204,7 @@ export default function EditTeamMemberPage() {
                   placeholder="User ID"
                   required
                   disabled={saving}
-                  className="bg-background border border-[#E5DEC9] px-3 py-1.5 text-[10px] text-[#231F20] font-normal focus:outline-none focus:border-[#D97736]"
+                  className="bg-background border border-[#E5DEC9] px-3 py-1.5 text-[10px] text-[#231F20] font-normal focus:outline-none focus:border-[#D97736] col-span-3"
                 />
               </div>
             </div>
@@ -232,7 +216,7 @@ export default function EditTeamMemberPage() {
             <div className="relative flex items-center bg-background border border-[#E5DEC9]">
               <Calendar className="w-4 h-4 text-[#D97736] absolute left-3.5 shrink-0 pointer-events-none" />
               <input
-                type="text"
+                type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
                 placeholder="e.g. 02 September 1996"

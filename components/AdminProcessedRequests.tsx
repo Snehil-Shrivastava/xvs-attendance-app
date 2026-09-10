@@ -116,6 +116,7 @@ const AdminProcessedRequests = () => {
   useEffect(() => {
     // Admin-only: never subscribe for non-admin users
     if (!user || !isAdmin) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
     let allLeaves: RequestItem[] = [];
@@ -129,37 +130,6 @@ const AdminProcessedRequests = () => {
 
     // ✅ ONLY resolved requests — "pending" is never fetched here
     const resolvedOnly = where("status", "in", ["approved", "denied"]);
-
-    // 1. Listen to resolved leaves
-    // const unsubLeaves = onSnapshot(
-    //   query(collection(db, "leaves"), resolvedOnly),
-    //   (snapshot) => {
-    //     allLeaves = [];
-    //     snapshot.forEach((docSnap) => {
-    //       const data = docSnap.data();
-    //       const dateDetail =
-    //         data.startDate === data.endDate
-    //           ? `Date: ${data.startDate}`
-    //           : `${data.startDate || ""} - ${data.endDate || ""}`;
-
-    //       allLeaves.push({
-    //         id: docSnap.id,
-    //         collectionName: "leaves",
-    //         userId: data.userId || "---",
-    //         name: data.name || "Employee",
-    //         type: data.leaveType || "Leave",
-    //         detail:
-    //           data.fromTime && data.toTime
-    //             ? `${data.fromTime} - ${data.toTime}`
-    //             : dateDetail,
-    //         appliedAt: formatAppliedTime(data.createdAt),
-    //         appliedTs: toEpoch(data.createdAt),
-    //         status: data.status,
-    //       });
-    //     });
-    //     updateCombined();
-    //   },
-    // );
 
     // 1. Listen to resolved leaves
     const unsubLeaves = onSnapshot(

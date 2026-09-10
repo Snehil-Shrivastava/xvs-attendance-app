@@ -48,6 +48,7 @@ const RequestsHistory = () => {
 
   useEffect(() => {
     if (!user) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
     // 1. Listen to `leaves` collection

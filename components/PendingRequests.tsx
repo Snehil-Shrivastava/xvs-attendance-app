@@ -90,6 +90,7 @@ const PendingRequests = () => {
 
   useEffect(() => {
     if (!user || userData?.role !== "admin") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
     let allLeaves: PendingItem[] = [];

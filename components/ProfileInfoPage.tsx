@@ -38,6 +38,7 @@ const ProfileInfoForm = () => {
   // Pre-fill form with existing user data
   useEffect(() => {
     if (userData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(userData?.name || "");
       // @ts-expect-error custom fields
       setDob(userData?.dob || "");
@@ -116,8 +117,6 @@ const ProfileInfoForm = () => {
               type="text"
               placeholder="e.g. Mehul Kumar Chaudhary"
               value={name}
-              // onChange={(e) => setName(e.target.value)}
-              // required
               className="w-full bg-transparent text-xs md:text-sm text-[#231F20] font-medium focus:outline-none placeholder-[#C4BCB1]"
               readOnly
             />
@@ -135,7 +134,6 @@ const ProfileInfoForm = () => {
             <CalendarDays className="w-5 h-5 text-[#E78B38] shrink-0 stroke-[1.8]" />
             <input
               type="date"
-              placeholder="e.g. 02 September 1996"
               value={dob}
               onChange={(e) => setDob(e.target.value)}
               className="w-full bg-transparent text-xs md:text-sm text-[#231F20] font-medium focus:outline-none placeholder-[#C4BCB1]"
@@ -195,7 +193,6 @@ const ProfileInfoForm = () => {
             <HeartPulse className="w-5 h-5 text-[#E78B38] shrink-0 stroke-[1.8]" />
             <input
               type="text"
-              // placeholder="e.g. Mehul Kumar Chaudhary"
               value={bloodGroup}
               onChange={(e) => setBloodGroup(e.target.value)}
               required

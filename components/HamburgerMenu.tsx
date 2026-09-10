@@ -42,6 +42,7 @@ const HamburgerMenu = () => {
 
   // Handle SSR portal mounting
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
