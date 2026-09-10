@@ -102,7 +102,7 @@ const HamburgerMenu = () => {
 
         {/* User Info Header */}
         <div className="mt-4">
-          <DashboardUserInfo />
+          <DashboardUserInfo onNavigate={() => setIsOpen(false)} />
         </div>
 
         <hr className="my-8 border-neutral-600/50 border" />
