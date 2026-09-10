@@ -7,6 +7,7 @@ import bgImg from "@/public/bg-vector-2.svg";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import DashboardUserInfo from "@/components/DashboardUserInfo";
 import { usePathname } from "next/navigation";
+import NotificationMenu from "@/components/NotificationMenu";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "dashboard",
@@ -35,7 +36,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           <span className="tracking-[16px] -mr-4 text-xs uppercase select-none">
             {pageTitle}
           </span>
-          <Bell className="w-5 h-5" />
+          {/* <Bell className="w-5 h-5" /> */}
+          <NotificationMenu />
         </div>
         <DashboardUserInfo datetime={true} nameTruncate={true} />
       </div>

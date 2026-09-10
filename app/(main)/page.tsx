@@ -43,7 +43,7 @@ export default function DashboardPage() {
             res?.success ? "Notifications Enabled!" : `Failed: ${res?.error}`,
           );
         }}
-        className="text-xs bg-brand-orange text-white px-2 py-1"
+        className="text-xs bg-brand-orange text-white px-2 py-2"
       >
         Enable Notifications
       </button>
