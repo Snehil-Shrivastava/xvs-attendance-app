@@ -16,15 +16,45 @@ export async function sendPushNotificationToUser({
   url = "/attendance",
 }: SendApprovalPushInput) {
   try {
-    const userDoc = await adminDb.collection("users").doc(targetUserId).get();
-    if (!userDoc.exists) return { success: false, error: "User not found" };
+    console.log(
+      "🔔 Preparing push notification for user identifier:",
+      targetUserId,
+    );
 
-    const fcmTokens: string[] = userDoc.data()?.fcmTokens || [];
-    if (fcmTokens.length === 0) {
-      return { success: false, message: "No active devices for this user" };
+    let fcmTokens: string[] = [];
+    let matchedDocId = targetUserId;
+
+    // 1. Try finding doc by ID directly
+    const userDoc = await adminDb.collection("users").doc(targetUserId).get();
+    if (userDoc.exists) {
+      fcmTokens = userDoc.data()?.fcmTokens || [];
+    } else {
+      // 2. Fallback: Search where userId field matches
+      const querySnap = await adminDb
+        .collection("users")
+        .where("userId", "==", targetUserId)
+        .limit(1)
+        .get();
+
+      if (!querySnap.empty) {
+        matchedDocId = querySnap.docs[0].id;
+        fcmTokens = querySnap.docs[0].data()?.fcmTokens || [];
+      }
     }
 
-    // Send push to all active devices registered for this user
+    console.log(`Found ${fcmTokens.length} token(s) for user ${targetUserId}`);
+
+    if (fcmTokens.length === 0) {
+      console.warn(
+        "⚠️ No active FCM tokens found in Firestore. Has the user granted notification permission?",
+      );
+      return {
+        success: false,
+        message: "No active devices registered for this user.",
+      };
+    }
+
+    // 3. Dispatch multicast payload
     const response = await adminMessaging.sendEachForMulticast({
       tokens: fcmTokens,
       notification: {
@@ -32,32 +62,42 @@ export async function sendPushNotificationToUser({
         body,
       },
       data: {
+        title,
+        body,
         url,
       },
-      webpush: {
-        fcmOptions: {
-          link: url,
+      android: {
+        priority: "high",
+        notification: {
+          sound: "default",
+          channelId: "default",
         },
       },
     });
 
-    // Clean up stale or invalid tokens automatically
+    console.log(
+      `Push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`,
+    );
+
+    // 4. Clean up expired tokens if any
     const validTokens: string[] = [];
     response.responses.forEach((res, idx) => {
       if (res.success) {
         validTokens.push(fcmTokens[idx]);
+      } else {
+        console.error(`Token #${idx} failed with error:`, res.error);
       }
     });
 
     if (validTokens.length !== fcmTokens.length) {
-      await adminDb.collection("users").doc(targetUserId).update({
+      await adminDb.collection("users").doc(matchedDocId).update({
         fcmTokens: validTokens,
       });
     }
 
-    return { success: true };
+    return { success: response.successCount > 0 };
   } catch (err) {
-    console.error("Failed to send push notification:", err);
+    console.error("❌ Failed to send push notification:", err);
     return { success: false, error: "Push dispatch failed" };
   }
 }
