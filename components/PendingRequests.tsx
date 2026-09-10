@@ -203,12 +203,35 @@ const PendingRequests = () => {
         reviewedBy: user?.uid,
         reviewedAt: new Date().toISOString(),
       });
-      if (newStatus === "approved") {
+
+      if (newStatus === "approved" || newStatus === "denied") {
+        const isApproved = newStatus === "approved";
+        const actionText = isApproved ? "Approved" : "Denied";
+
+        let title = `${item.type} ${actionText}`;
+        let body = `Your ${item.type.toLowerCase()} (${item.detail}) has been ${actionText.toLowerCase()}.`;
+        let url = "/attendance";
+
+        // Customize specific messages and redirect URLs based on request type
+        if (item.collectionName === "leaves") {
+          title = `Leave Request ${actionText}`;
+          body = `Your ${item.type} for ${item.detail} has been ${actionText.toLowerCase()}.`;
+          url = "/leaves";
+        } else if (item.collectionName === "late_arrivals") {
+          title = `Late Arrival Request ${actionText}`;
+          body = `Your late arrival request (${item.detail}) has been ${actionText.toLowerCase()}.`;
+          url = "/attendance";
+        } else if (item.collectionName === "attendance_corrections") {
+          title = `Attendance Correction ${actionText}`;
+          body = `Your attendance correction request for ${item.detail} has been ${actionText.toLowerCase()}.`;
+          url = "/attendance";
+        }
+
         await sendPushNotificationToUser({
           targetUserId: item.userId,
-          title: "Attendance Correction Approved",
-          body: `Your attendance correction request for ${item.detail} has been approved.`,
-          url: "/attendance",
+          title,
+          body,
+          url,
         });
       }
     } catch (error) {
