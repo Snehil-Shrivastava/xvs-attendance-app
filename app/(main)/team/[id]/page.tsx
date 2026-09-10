@@ -219,7 +219,6 @@ export default function EditTeamMemberPage() {
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
-                placeholder="e.g. 02 September 1996"
                 disabled={saving}
                 className="w-full bg-transparent pl-10 pr-3.5 py-3 text-[10px] text-[#231F20] font-medium focus:outline-none"
               />

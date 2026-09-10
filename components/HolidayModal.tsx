@@ -104,7 +104,7 @@ const HolidayModal = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm border border-[#E5DEC9] bg-[#FAF7F2] p-5 rounded-xs shadow-xl text-[#231F20]"
+        className="relative w-full max-w-sm border border-[#E5DEC9] bg-background p-5 rounded-xs shadow-xl text-[#231F20]"
       >
         {/* Close Button */}
         <button
@@ -137,7 +137,7 @@ const HolidayModal = ({
             <label className="text-[11px] text-[#8C827A] font-normal">
               Holiday Date
             </label>
-            <div className="border border-[#E5DEC9] bg-[#F7F3EB] px-3.5 py-3 rounded-xs">
+            <div className="border border-[#E5DEC9] bg-background px-3.5 py-3 rounded-xs">
               <input
                 type="date"
                 value={date}
@@ -159,7 +159,7 @@ const HolidayModal = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="border border-[#E5DEC9] bg-[#F7F3EB] p-3 text-xs text-[#231F20] placeholder-[#C4BCB1] focus:outline-none rounded-xs"
+              className="border border-[#E5DEC9] bg-background p-3 text-xs text-[#231F20] placeholder-[#C4BCB1] focus:outline-none rounded-xs"
             />
           </div>
 

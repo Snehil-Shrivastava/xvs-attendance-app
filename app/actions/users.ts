@@ -16,7 +16,8 @@ export interface CreateTeamMemberInput {
   mustChangePassword: boolean;
 }
 
-const DEFAULT_AVATAR_URL = "";
+const DEFAULT_AVATAR_URL =
+  "https://res.cloudinary.com/f9dsssqz/image/upload/v1789025335/avatar_placeholder.webp";
 
 export async function createTeamMember(
   input: CreateTeamMemberInput,
