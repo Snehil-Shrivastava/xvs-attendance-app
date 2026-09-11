@@ -72,24 +72,21 @@ export default function EditTeamMemberPage() {
         setPhotoURL(data.photoUrl || "/placeholder-avatar.png");
         setDepartment(data.department || "");
         setUserIdVal(data.userId || memberId);
-        setDob(data.dob || "02 September 1996");
-        setPhone(data.phone || "70548 79254");
-        setPanNumber(data.panNumber || "FOKPS6791M");
+        setDob(data.dob || "");
+        setPhone(data.phone || "XXXXXXXXXX");
+        setPanNumber(data.panNumber || "XXXXXXXXXX");
         setAdhaarNumber(
-          data.adhaarNumber || data.aadhaarNumber || "8484 8948 9858",
+          data.adhaarNumber || data.aadhaarNumber || "XXXXXXXXXXXX",
         );
         setEmail(data.email || "");
-        setEmergencyName(data.emergencyContact?.name || "Dinesh Kumar");
+        setEmergencyName(data.emergencyContact?.name || "XXXXXXX");
         setEmergencyRelation(
           data.emergencyContact?.relation ||
             data.emergencyContact?.relationship ||
-            "Father",
+            "XXXXXX",
         );
-        setEmergencyPhone(data.emergencyContact?.phone || "70548 79254");
-        setAddress(
-          data.address ||
-            "82, Kherwadi Road, Nr Railway Station, Bandra (e)\nMumbai,\nMaharashtra, 400051",
-        );
+        setEmergencyPhone(data.emergencyContact?.phone || "XXXXXXXXXX");
+        setAddress(data.address || "XXXXXXXXXXXXXXXXXXXXXXXXXXX");
       }
       setLoading(false);
     });
