@@ -1,7 +1,7 @@
 // "use client";
 
 // import { useRef, useState } from "react";
-// import { usePathname } from "next/navigation";
+// import { usePathname, useRouter } from "next/navigation";
 // import Image from "next/image";
 // import placeholder from "@/public/placeholder.webp";
 // import { useAuth } from "@/context/AuthContext";
@@ -13,30 +13,44 @@
 //   return name.length > limit ? `${name.slice(0, limit)}...` : name;
 // };
 
+// interface DashboardUserInfoProps {
+//   datetime?: boolean;
+//   nameTruncate?: boolean;
+//   onNavigate?: () => void;
+// }
+
 // const DashboardUserInfo = ({
 //   datetime,
 //   nameTruncate = false,
-// }: {
-//   datetime?: boolean;
-//   nameTruncate?: boolean;
-// }) => {
+//   onNavigate,
+// }: DashboardUserInfoProps) => {
 //   const { user, userData, loading } = useAuth();
 //   const pathname = usePathname();
+//   const router = useRouter();
 //   const isProfilePage = pathname === "/my-profile";
 
 //   const fileInputRef = useRef<HTMLInputElement | null>(null);
 //   const [uploading, setUploading] = useState(false);
 
 //   const today = new Date();
-//   const dayName = today.toLocaleDateString("en-US", { weekday: "long" }); // e.g. "Monday"
-//   const day = today.getDate().toString().padStart(2, "0"); // "24"
-//   const month = today.toLocaleDateString("en-US", { month: "short" }); // "Aug"
-//   const formattedDate = `${day} ${month}`; // "24 Aug"
-//   const year = today.getFullYear(); // 2026
+//   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+//   const day = today.getDate().toString().padStart(2, "0");
+//   const month = today.toLocaleDateString("en-US", { month: "short" });
+//   const formattedDate = `${day} ${month}`;
+//   const year = today.getFullYear();
 
-//   const handleImageClick = () => {
+//   // Navigate to "/" and close menu if open
+//   const handleSectionClick = () => {
+//     if (onNavigate) {
+//       onNavigate();
+//     }
+//     router.push("/");
+//   };
+
+//   const handleImageClick = (e: React.MouseEvent) => {
 //     // Only allow clicking when on the /my-profile page
 //     if (!isProfilePage || uploading) return;
+//     e.stopPropagation(); // Prevents navigating to "/" when changing profile picture
 //     fileInputRef.current?.click();
 //   };
 
@@ -57,7 +71,7 @@
 //     }
 //   };
 
-//   // Skeleton loading state while data is fetching
+//   // Skeleton loading state
 //   if (loading) {
 //     return (
 //       <div className="flex items-center justify-between animate-pulse">
@@ -78,8 +92,12 @@
 
 //   return (
 //     <div className="flex items-center justify-between">
-//       <div className="flex items-center justify-between gap-4">
-//         {/* Image Container (Only clickable on /my-profile) */}
+//       {/* Clickable section that routes to "/" */}
+//       <div
+//         onClick={handleSectionClick}
+//         className="flex items-center justify-between gap-4 cursor-pointer group select-none"
+//       >
+//         {/* Image Container (Only acts as file upload on /my-profile) */}
 //         <div
 //           onClick={handleImageClick}
 //           className={`${isProfilePage ? "cursor-pointer" : ""} ${
@@ -112,7 +130,7 @@
 //         <div className="flex flex-col">
 //           {/* Employee Name */}
 //           <h2
-//             className="text-xl font-calSans tracking-wider select-none"
+//             className="text-xl font-calSans tracking-wider select-none group-hover:opacity-90 transition-opacity"
 //             title={userData?.name || "Employee Name"}
 //           >
 //             {/* @ts-expect-error unknown */}
@@ -124,7 +142,7 @@
 //             {userData?.department || "Department"}
 //           </span>
 
-//           {/* User ID (from Dahua / Firestore) */}
+//           {/* User ID */}
 //           <span className="opacity-60 text-[10px] font-light">
 //             ID: {userData?.userId || "---"}
 //           </span>
@@ -132,7 +150,7 @@
 //       </div>
 
 //       {datetime && (
-//         <div className="flex flex-col border-l border-l-neutral-500 pl-8">
+//         <div className="flex flex-col border-l border-l-neutral-500 pl-8 select-none">
 //           <span className="capitalize text-[8px]">{dayName}</span>
 //           <span className="uppercase font-calSans text-base">
 //             {formattedDate}
@@ -146,7 +164,7 @@
 
 // export default DashboardUserInfo;
 
-// ---------------------------------------------------
+// ---------------------------------------------------------------------------
 
 "use client";
 
@@ -158,20 +176,20 @@ import { useAuth } from "@/context/AuthContext";
 import { uploadProfilePhoto } from "@/lib/uploadPhoto";
 import { RefreshCw } from "lucide-react";
 
-const truncateName = (name: string, limit = 11) => {
-  if (!name) return "Employee Name";
-  return name.length > limit ? `${name.slice(0, limit)}...` : name;
+// Helper: Extract only the first name
+const getFirstName = (name?: string) => {
+  if (!name) return "Employee";
+  return name.trim().split(" ")[0] || "Employee";
 };
 
 interface DashboardUserInfoProps {
   datetime?: boolean;
   nameTruncate?: boolean;
-  onNavigate?: () => void; // <--- Optional callback to close menu
+  onNavigate?: () => void;
 }
 
 const DashboardUserInfo = ({
   datetime,
-  nameTruncate = false,
   onNavigate,
 }: DashboardUserInfoProps) => {
   const { user, userData, loading } = useAuth();
@@ -278,13 +296,12 @@ const DashboardUserInfo = ({
         </div>
 
         <div className="flex flex-col">
-          {/* Employee Name */}
+          {/* Employee First Name */}
           <h2
             className="text-xl font-calSans tracking-wider select-none group-hover:opacity-90 transition-opacity"
             title={userData?.name || "Employee Name"}
           >
-            {/* @ts-expect-error unknown */}
-            {nameTruncate ? truncateName(userData?.name) : userData?.name}
+            {getFirstName(userData?.name)}
           </h2>
 
           {/* Department */}

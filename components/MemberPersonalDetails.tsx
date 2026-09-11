@@ -72,13 +72,13 @@ export const MemberPersonalDetails = ({ userId }: { userId: string }) => {
         <div>
           <label className={labelCls}>PAN Number</label>
           <div className={inputCardCls}>
-            {pan !== "--" ? pan : "FOKPS6791M"}
+            {pan !== "--" ? pan : "XXXXXXXXXX"}
           </div>
         </div>
         <div>
           <label className={labelCls}>Adhaar Number</label>
           <div className={inputCardCls}>
-            {aadhaar !== "--" ? aadhaar : "8484 8948 9858"}
+            {aadhaar !== "--" ? aadhaar : "XXXXXXXXXXXX"}
           </div>
         </div>
       </div>
@@ -96,13 +96,13 @@ export const MemberPersonalDetails = ({ userId }: { userId: string }) => {
         <label className={labelCls}>Emergency Contact</label>
         <div className="grid grid-cols-3 gap-2">
           <div className={`${inputCardCls} text-center truncate`}>
-            {emergency?.name || "Dinesh Kumar"}
+            {emergency?.name || ""}
           </div>
           <div className={`${inputCardCls} text-center truncate`}>
-            {emergency?.relation || emergency?.relationship || "Father"}
+            {emergency?.relation || emergency?.relationship || ""}
           </div>
           <div className={`${inputCardCls} text-center truncate`}>
-            {emergency?.phone || "70548 79254"}
+            {emergency?.phone || ""}
           </div>
         </div>
       </div>
@@ -115,15 +115,7 @@ export const MemberPersonalDetails = ({ userId }: { userId: string }) => {
         >
           <MapPin className="w-4 h-4 text-[#D97736] shrink-0 mt-0.5" />
           <span className="text-[11px] text-[#231F20]">
-            {profile?.address || (
-              <>
-                82, Kherwadi Road, Nr Railway Station, Bandra (e)
-                <br />
-                Mumbai,
-                <br />
-                Maharashtra, 400051
-              </>
-            )}
+            {profile?.address || ""}
           </span>
         </div>
       </div>
