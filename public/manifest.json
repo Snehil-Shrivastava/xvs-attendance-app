@@ -1,15 +1,15 @@
 {
-  "name": "Presence",
-  "short_name": "Presence",
+  "name": "xVS Attendance",
+  "short_name": "xVS Attendance",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1817",
   "theme_color": "#F28B31",
   "icons": [
     {
-      "src": "/app-logo.svg",
+      "src": "/app-logo.png",
       "sizes": "72x72",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }
