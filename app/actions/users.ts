@@ -93,8 +93,8 @@ export async function createTeamMember(
   const quota = Number(input.annualQuota);
   const grace = Number(input.monthlyGraceMinutes);
 
-  if (!/^\d{3,8}$/.test(userId))
-    return { success: false, error: "User ID must be numeric (e.g. 1006)." };
+  // if (!/^\d{3,8}$/.test(userId))
+  //   return { success: false, error: "User ID must be numeric (e.g. 1006)." };
   if (!name) return { success: false, error: "Full name is required." };
   if (!/^\S+@\S+\.\S+$/.test(email))
     return { success: false, error: "Enter a valid email address." };
