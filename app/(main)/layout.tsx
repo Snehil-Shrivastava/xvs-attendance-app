@@ -23,7 +23,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen font-poppins bg-brand-cream">
-      <div className="bg-brand-black px-5 py-10 overflow-hidden dashboard-clip flex flex-col gap-8 sticky top-0 z-20">
+      <div className="bg-brand-black px-5 py-10 overflow-hidden dashboard-clip flex flex-col gap-8 sticky top-0 z-25">
         <div className="flex justify-between items-center">
           <Image
             src={bgImg}

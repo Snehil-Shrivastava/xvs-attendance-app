@@ -218,6 +218,7 @@ const ProfileInfoForm = () => {
                 type="text"
                 value={emergencyName}
                 onChange={(e) => setEmergencyName(e.target.value)}
+                required
                 className="w-full bg-transparent border-b border-black/10 focus:outline-none pb-0.5 text-xs md:text-sm"
               />
             </div>
@@ -229,6 +230,7 @@ const ProfileInfoForm = () => {
                 type="tel"
                 value={emergencyContact}
                 onChange={(e) => setEmergencyContact(e.target.value)}
+                required
                 className="w-full bg-transparent border-b border-black/10 focus:outline-none pb-0.5 text-xs md:text-sm"
               />
             </div>
@@ -240,6 +242,7 @@ const ProfileInfoForm = () => {
                 type="text"
                 value={emergencyRelationship}
                 onChange={(e) => setEmergencyRelationship(e.target.value)}
+                required
                 className="w-full bg-transparent border-b border-black/10 focus:outline-none pb-0.5 text-xs md:text-sm"
               />
             </div>
