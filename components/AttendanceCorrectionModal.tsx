@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { notifyAdminsOfNewRequest } from "@/app/actions/notifications";
 
 interface AttendanceCorrectionModalProps {
   isOpen: boolean;
@@ -39,6 +40,13 @@ const AttendanceCorrectionModal = ({
         status: "pending", // "pending" | "approved" | "denied"
         createdAt: serverTimestamp(),
       });
+
+      notifyAdminsOfNewRequest({
+        employeeName: userData?.name || "Employee",
+        requestType: "Attendance Correction",
+        details: `Date: ${date}${remarks ? ` - "${remarks}"` : ""}`,
+        url: "/requests",
+      }).catch((err) => console.error("Admin notification error:", err));
 
       // Clear & Close
       setDate("");

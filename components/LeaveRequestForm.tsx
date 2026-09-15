@@ -7,6 +7,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import LeaveFormSuccessModal from "@/components/LeaveFormSuccessModal";
+import { notifyAdminsOfNewRequest } from "@/app/actions/notifications";
 
 const LEAVE_TYPES = [
   "Planned Leave",
@@ -236,6 +237,18 @@ const LeaveRequestForm = () => {
         status: "pending",
         createdAt: serverTimestamp(),
       });
+
+      let leaveDetail = `${finalLeaveType} (${start === end ? start : `${start} to ${end}`})`;
+      if (leaveDuration === "half") {
+        leaveDetail = `Half Day on ${start} (${fromTime} - ${toTime})`;
+      }
+
+      notifyAdminsOfNewRequest({
+        employeeName: userData?.name || "Employee",
+        requestType: "Leave",
+        details: leaveDetail,
+        url: "/requests",
+      }).catch((err) => console.error("Admin notification error:", err));
 
       // Clear form inputs
       setSingleDate("");
