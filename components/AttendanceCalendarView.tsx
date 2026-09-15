@@ -22,7 +22,7 @@ interface DayRecord {
     | "Half Day"
     | "Absent"
     | "On Leave"
-    | "WFM"
+    | "WFH"
     | "Work from Home"
     | "Holiday";
   overtimeMinutes?: number;
@@ -325,11 +325,11 @@ const AttendanceCalendarView = ({
           remark,
           isNormal: false,
         };
-      case "WFM":
+      case "WFH":
       case "Work from Home":
         return {
           styleClass: "bg-[#577A64] text-white font-medium",
-          label: "WFM",
+          label: "WFH",
           remark,
           isNormal: false,
         };
@@ -576,7 +576,7 @@ const AttendanceCalendarView = ({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 bg-[#577A64] shrink-0" />
-            <span>WFM</span>
+            <span>WFH</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 bg-[#55B5E5] shrink-0" />
