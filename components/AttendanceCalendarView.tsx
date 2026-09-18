@@ -480,7 +480,7 @@ const AttendanceCalendarView = ({
               }}
               className={`absolute z-20 border border-[#E5DEC9] p-1.5 flex flex-col justify-between cursor-pointer transition-all duration-150 shadow-md ${
                 overlayConfig.details.isNormal
-                  ? "bg-[#FAF6EC] text-[#231F20]"
+                  ? "bg-background text-[#231F20]"
                   : overlayConfig.details.styleClass
               }`}
             >

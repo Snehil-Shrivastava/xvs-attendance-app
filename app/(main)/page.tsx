@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
   return (
     <div className="py-10 px-5 flex flex-col gap-6">
-      {/* <BirthdayBanner /> */}
+      <BirthdayBanner />
       <EnableNotificationsButton />
 
       {isAdmin && <PendingRequests />}
