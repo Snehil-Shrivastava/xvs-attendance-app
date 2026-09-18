@@ -11,11 +11,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { DayRecord } from "@/lib/calendarStatus";
-import {
-  computeAttendanceFromCheckIn,
-  type ShiftConfig,
-} from "@/lib/attendanceStatus";
-import { recomputeMonthlySummary } from "@/lib/monthlySummary";
+import type { ShiftConfig } from "@/lib/attendanceStatus";
+import { recomputeMonthlyAttendance } from "@/lib/monthlySummary";
 
 type ManageStatus = "Present" | "Absent" | "Half Day" | "Leave";
 type LeaveSubType = "normal" | "unpaid";
@@ -110,7 +107,6 @@ export function useAdminManageDay({
       );
       const leaveDocRef = doc(db, "leaves", `${remarkDate}_${effectiveUid}`);
 
-      // Read the target user's shift config once.
       const userDoc = await getDoc(doc(db, "users", effectiveUid));
       const u = userDoc.data() || {};
       const shift: ShiftConfig = {
@@ -130,43 +126,28 @@ export function useAdminManageDay({
         leaveType: deleteField(),
       };
 
-      // ---- Write the daily doc (and any associated leave doc) ----
-      // No more incremental summary updates here. The summary is fully
-      // recomputed below from the updated daily_attendance collection.
+      // ---- Write the target day's raw data ----
+      // We deliberately do NOT compute status/graceDeducted here.
+      // recomputeMonthlyAttendance below assigns them based on chronological
+      // pool consumption.
 
       if (selectedStatus === "Present") {
-        if (isWorkFromHome) {
-          await Promise.all([
-            setDoc(
-              dailyRef,
-              {
-                ...baseFields,
-                status: "WFH",
-                checkIn: `${checkInTime}:00`,
-                minutesDelayed: 0,
-                graceDeducted: 0,
-              },
-              { merge: true },
-            ),
-            deleteDoc(leaveDocRef).catch(() => {}),
-          ]);
-        } else {
-          const computed = computeAttendanceFromCheckIn(checkInTime, shift);
-          await Promise.all([
-            setDoc(
-              dailyRef,
-              {
-                ...baseFields,
-                status: computed.status,
-                checkIn: `${checkInTime}:00`,
-                minutesDelayed: computed.minutesDelayed,
-                graceDeducted: computed.graceDeducted,
-              },
-              { merge: true },
-            ),
-            deleteDoc(leaveDocRef).catch(() => {}),
-          ]);
-        }
+        // On-site and WFH share a checkIn field. Status is placeholder.
+        const statusPlaceholder = isWorkFromHome ? "WFH" : "On Time";
+        await Promise.all([
+          setDoc(
+            dailyRef,
+            {
+              ...baseFields,
+              status: statusPlaceholder,
+              checkIn: `${checkInTime}:00`,
+              minutesDelayed: 0,
+              graceDeducted: 0,
+            },
+            { merge: true },
+          ),
+          deleteDoc(leaveDocRef).catch(() => {}),
+        ]);
       } else if (selectedStatus === "Absent") {
         await Promise.all([
           setDoc(
@@ -251,10 +232,13 @@ export function useAdminManageDay({
         ]);
       }
 
-      // ---- Recompute the whole month's summary from primary sources ----
-      // This eliminates drift, floors graceRemaining at 0, and keeps
-      // graceUsed / lateDays / presentDays always in sync with reality.
-      await recomputeMonthlySummary(effectiveUid, month, shift);
+      // ---- Recompute the whole month chronologically ----
+      await recomputeMonthlyAttendance(
+        effectiveUid,
+        month,
+        shift,
+        userData?.name,
+      );
 
       setIsOpen(false);
     } catch (err) {

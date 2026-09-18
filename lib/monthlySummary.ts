@@ -1,13 +1,14 @@
 // lib/monthlySummary.ts
 //
-// Recomputes a user's monthly_summaries doc from scratch by aggregating all
-// daily_attendance docs for the given month.
+// Recomputes the entire month's attendance classification and summary from
+// primary sources.
 //
-// Why recompute instead of incremental updates?
-// The previous approach applied `increment(±delta)` on every write. Any
-// drift (from webhook races, earlier buggy patches, manual testing) became
-// permanent because nothing ever reset the baseline. Recomputing guarantees
-// the summary always matches the raw daily records.
+// KEY SEMANTIC: grace is a SHARED monthly pool, not a per-day allowance.
+// Days are processed chronologically. Each delayed check-in consumes from
+// the pool until it's exhausted; any delay beyond the pool is "Late".
+//
+// Because classification depends on order, this function is the single
+// source of truth for status/graceDeducted/minutesDelayed on every day.
 
 import {
   collection,
@@ -15,10 +16,11 @@ import {
   getDocs,
   query,
   setDoc,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { ShiftConfig } from "./attendanceStatus";
+import { parseTimeToMinutes, type ShiftConfig } from "./attendanceStatus";
 
 export interface MonthlySummarySnapshot {
   graceTotalAllowed: number;
@@ -30,46 +32,163 @@ export interface MonthlySummarySnapshot {
   totalHoursWorked: number;
 }
 
-export async function recomputeMonthlySummary(
+// Statuses that sit outside the grace pool. They neither consume grace nor
+// get re-classified by the recompute.
+const NON_WORKING_STATUSES = new Set([
+  "Absent",
+  "On Leave",
+  "Half Day",
+  "WFH",
+  "Work from Home",
+  "Holiday",
+]);
+
+export async function recomputeMonthlyAttendance(
   userId: string,
   month: string,
   shift: ShiftConfig,
-  name?: string,
+  userName?: string,
 ): Promise<MonthlySummarySnapshot> {
-  const q = query(
-    collection(db, "daily_attendance"),
-    where("userId", "==", userId),
-    where("month", "==", month),
+  // 1. Fetch every daily_attendance doc for this user+month
+  const dailySnap = await getDocs(
+    query(
+      collection(db, "daily_attendance"),
+      where("userId", "==", userId),
+      where("month", "==", month),
+    ),
   );
-  const snap = await getDocs(q);
 
+  // 2. Fetch approved late_arrivals for this user (for per-day shift override)
+  const lateSnap = await getDocs(
+    query(
+      collection(db, "late_arrivals"),
+      where("userId", "==", userId),
+      where("status", "==", "approved"),
+    ),
+  );
+  // date -> latest approved arrival time (if multiple, take the latest)
+  const overrideByDate: Record<string, string> = {};
+  lateSnap.forEach((d) => {
+    const data = d.data();
+    const date = String(data.date || "");
+    const newTime = String(data.newArrivalTime || "");
+    if (!date || !newTime) return;
+    const existing = overrideByDate[date];
+    const newMin = parseTimeToMinutes(newTime) ?? 0;
+    const existMin = existing ? (parseTimeToMinutes(existing) ?? 0) : 0;
+    if (newMin > existMin) overrideByDate[date] = newTime;
+  });
+
+  // 3. Sort chronologically (YYYY-MM-DD sorts lexicographically)
+  const days = dailySnap.docs
+    .map((d) => ({ ref: d.ref, data: d.data() }))
+    .sort((a, b) =>
+      String(a.data.date || "").localeCompare(String(b.data.date || "")),
+    );
+
+  // 4. Iterate in order, tracking the shared grace pool
+  let graceRemaining = shift.monthlyGraceAllowance;
   let graceUsed = 0;
   let lateDays = 0;
   let presentDays = 0;
   let totalLateMinutes = 0;
   let totalHoursWorked = 0;
 
-  snap.forEach((d) => {
-    const data = d.data();
-    const gd = Number(data.graceDeducted || 0);
-    graceUsed += gd;
+  const writes: Promise<unknown>[] = [];
 
+  for (const day of days) {
+    const data = day.data;
     const status = String(data.status || "");
-    if (status === "Late") {
-      lateDays += 1;
-      const delay = Number(data.minutesDelayed || 0);
-      totalLateMinutes += Math.max(0, delay - gd);
+    const checkIn = String(data.checkIn || "");
+    const dateKey = String(data.date || "");
+
+    totalHoursWorked += Number(data.totalWorkingHours || 0);
+
+    // Non-working days never touch grace. Clear any stale grace fields.
+    if (NON_WORKING_STATUSES.has(status)) {
+      if (Number(data.graceDeducted || 0) !== 0) {
+        writes.push(
+          updateDoc(day.ref, { graceDeducted: 0, minutesDelayed: 0 }),
+        );
+      }
+      continue;
     }
 
-    if (data.checkIn) presentDays += 1;
-    totalHoursWorked += Number(data.totalWorkingHours || 0);
-  });
+    // No check-in yet → nothing to classify, ensure clean state.
+    if (!checkIn) {
+      if (
+        status === "Late" ||
+        Number(data.graceDeducted || 0) !== 0 ||
+        Number(data.minutesDelayed || 0) !== 0
+      ) {
+        writes.push(
+          updateDoc(day.ref, {
+            status: "On Time",
+            graceDeducted: 0,
+            minutesDelayed: 0,
+          }),
+        );
+      }
+      continue;
+    }
 
-  const graceTotalAllowed = shift.monthlyGraceAllowance;
-  const graceRemaining = Math.max(0, graceTotalAllowed - graceUsed);
+    // Effective shift start for the day (approved late-arrival override wins)
+    const override = overrideByDate[dateKey];
+    const shiftStart = override || shift.startTime;
+    const shiftMin = parseTimeToMinutes(shiftStart) ?? 9 * 60;
+    const checkInMin = parseTimeToMinutes(checkIn) ?? shiftMin;
+    const delay = Math.max(0, checkInMin - shiftMin);
 
-  const result: MonthlySummarySnapshot = {
-    graceTotalAllowed,
+    let newGraceDeducted = 0;
+    let newStatus: "On Time" | "Late" = "On Time";
+
+    if (delay === 0) {
+      newStatus = "On Time";
+    } else if (delay <= graceRemaining) {
+      // Fits entirely within the pool → still On Time, but pool shrinks.
+      newGraceDeducted = delay;
+      graceRemaining -= delay;
+      graceUsed += delay;
+      newStatus = "On Time";
+    } else if (graceRemaining > 0) {
+      // Partial: pool covers some, remainder is late.
+      newGraceDeducted = graceRemaining;
+      graceUsed += graceRemaining;
+      graceRemaining = 0;
+      newStatus = "Late";
+      totalLateMinutes += delay - newGraceDeducted;
+      lateDays += 1;
+    } else {
+      // Pool exhausted → fully late.
+      newGraceDeducted = 0;
+      newStatus = "Late";
+      totalLateMinutes += delay;
+      lateDays += 1;
+    }
+
+    presentDays += 1;
+
+    const changed =
+      status !== newStatus ||
+      Number(data.graceDeducted || 0) !== newGraceDeducted ||
+      Number(data.minutesDelayed || 0) !== delay;
+
+    if (changed) {
+      writes.push(
+        updateDoc(day.ref, {
+          status: newStatus,
+          graceDeducted: newGraceDeducted,
+          minutesDelayed: delay,
+        }),
+      );
+    }
+  }
+
+  await Promise.all(writes);
+
+  // 5. Persist the summary
+  const snapshot: MonthlySummarySnapshot = {
+    graceTotalAllowed: shift.monthlyGraceAllowance,
     graceUsed,
     graceRemaining,
     lateDays,
@@ -83,12 +202,12 @@ export async function recomputeMonthlySummary(
     {
       userId,
       month,
-      ...(name ? { name } : {}),
-      ...result,
+      ...(userName ? { name: userName } : {}),
+      ...snapshot,
       updatedAt: new Date().toISOString(),
     },
     { merge: true },
   );
 
-  return result;
+  return snapshot;
 }

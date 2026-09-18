@@ -1,20 +1,14 @@
 // lib/lateArrival.ts
 //
-// Side effect for approving a `late_arrivals` request.
-//
-// 1. Approved `newArrivalTime` becomes the effective shift start for that day.
-// 2. Recompute daily_attendance status from the actual check-in.
-// 3. Recompute the whole month's monthly_summaries from daily_attendance
-//    (no incremental deltas — the summary is derived, not tracked).
+// Approval side effect for a `late_arrivals` request. The approved
+// newArrivalTime becomes the effective shift start for that day.
+// After updating the affected daily doc, the entire month is recomputed
+// (classification depends on chronological pool order).
 
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import {
-  computeAttendanceFromCheckIn,
-  parseTimeToMinutes,
-  type ShiftConfig,
-} from "./attendanceStatus";
-import { recomputeMonthlySummary } from "./monthlySummary";
+import { parseTimeToMinutes, type ShiftConfig } from "./attendanceStatus";
+import { recomputeMonthlyAttendance } from "./monthlySummary";
 
 export interface LateArrivalApprovalResult {
   ok: boolean;
@@ -33,54 +27,44 @@ export async function applyLateArrivalApproval(
   if (!reqSnap.exists()) return { ok: false, reason: "request-not-found" };
 
   const req = reqSnap.data();
-  const reqUserId = String(req.userId || "");
-  const reqDate = String(req.date || "");
+  const userId = String(req.userId || "");
+  const date = String(req.date || "");
   const approvedArrival = String(req.newArrivalTime || "");
-  if (!reqUserId || !reqDate || !approvedArrival) {
+  if (!userId || !date || !approvedArrival) {
     return { ok: false, reason: "request-missing-fields" };
   }
 
-  const dailyRef = doc(db, "daily_attendance", `${reqDate}_${reqUserId}`);
+  const dailyRef = doc(db, "daily_attendance", `${date}_${userId}`);
   const dailySnap = await getDoc(dailyRef);
   if (!dailySnap.exists()) return { ok: false, reason: "no-checkin-yet" };
 
-  const daily = dailySnap.data();
-  const checkIn = String(daily.checkIn || "");
-  if (!checkIn) return { ok: false, reason: "no-checkin-time" };
+  const oldStatus = String(dailySnap.data().status || "");
 
-  const oldStatus = String(daily.status || "");
-
-  const userSnap = await getDoc(doc(db, "users", reqUserId));
+  const userSnap = await getDoc(doc(db, "users", userId));
   const u = userSnap.data() || {};
-  const shiftStart = String(u?.shift?.startTime || "09:00:00");
-  const graceAllowance = Number(
-    u?.shift?.monthlyGraceAllowance ?? DEFAULT_GRACE,
-  );
-
-  const shiftMin = parseTimeToMinutes(shiftStart) ?? 9 * 60;
-  const approvedMin = parseTimeToMinutes(approvedArrival) ?? shiftMin;
-  const effectiveStart = approvedMin > shiftMin ? approvedArrival : shiftStart;
-
   const shift: ShiftConfig = {
-    startTime: effectiveStart,
-    monthlyGraceAllowance: graceAllowance,
+    startTime: String(u?.shift?.startTime || "09:00:00"),
+    monthlyGraceAllowance: Number(
+      u?.shift?.monthlyGraceAllowance ?? DEFAULT_GRACE,
+    ),
   };
 
-  const computed = computeAttendanceFromCheckIn(checkIn, shift);
-
+  // Mark the doc so the calendar knows this day has an approved override.
+  // (Recompute will pick it up by reading the late_arrivals collection.)
   await updateDoc(dailyRef, {
-    status: computed.status,
-    minutesDelayed: computed.minutesDelayed,
-    graceDeducted: computed.graceDeducted,
     approvedLateArrivalId: requestDocId,
     updatedAt: new Date().toISOString(),
   });
 
-  const month = reqDate.slice(0, 7);
-  await recomputeMonthlySummary(reqUserId, month, {
-    startTime: String(u?.shift?.startTime || "09:00:00"),
-    monthlyGraceAllowance: graceAllowance,
-  });
+  const month = date.slice(0, 7);
+  await recomputeMonthlyAttendance(userId, month, shift, String(u.name || ""));
 
-  return { ok: true, oldStatus, newStatus: computed.status };
+  // For the caller's notification logic
+  const shiftMin = parseTimeToMinutes(shift.startTime) ?? 9 * 60;
+  const approvedMin = parseTimeToMinutes(approvedArrival) ?? shiftMin;
+  return {
+    ok: true,
+    oldStatus,
+    newStatus: approvedMin > shiftMin ? "override-applied" : oldStatus,
+  };
 }
