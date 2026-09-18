@@ -343,10 +343,10 @@ const AttendanceCalendarView = ({
       case "On Time":
       default:
         return {
-          styleClass: "bg-transparent text-[#231F20]",
+          styleClass: "bg-brand-orange text-white font-medium",
           label: "",
           remark,
-          isNormal: true,
+          isNormal: false,
         };
     }
   };
@@ -588,7 +588,7 @@ const AttendanceCalendarView = ({
             <span>Late</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 border border-[#E5DEC9] bg-transparent shrink-0" />
+            <span className="w-3.5 h-3.5 bg-brand-orange shrink-0" />
             <span>Present</span>
           </div>
           <div className="flex items-center gap-1.5">
