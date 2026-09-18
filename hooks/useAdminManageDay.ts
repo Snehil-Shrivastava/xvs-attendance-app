@@ -7,15 +7,12 @@ import {
   getDoc,
   setDoc,
   deleteDoc,
-  increment,
   deleteField,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { DayRecord } from "@/lib/calendarStatus";
-import {
-  computeAttendanceFromCheckIn,
-  type ShiftConfig,
-} from "@/lib/attendanceStatus";
+import type { ShiftConfig } from "@/lib/attendanceStatus";
+import { recomputeMonthlyAttendance } from "@/lib/monthlySummary";
 
 type ManageStatus = "Present" | "Absent" | "Half Day" | "Leave";
 type LeaveSubType = "normal" | "unpaid";
@@ -109,28 +106,8 @@ export function useAdminManageDay({
         `${remarkDate}_${effectiveUid}`,
       );
       const leaveDocRef = doc(db, "leaves", `${remarkDate}_${effectiveUid}`);
-      const monthlySummaryRef = doc(
-        db,
-        "monthly_summaries",
-        `${month}_${effectiveUid}`,
-      );
 
-      // ---- 1. Read prior state (attendance + shift + summary) ----
-      const [dailySnap, userDoc, summarySnap] = await Promise.all([
-        getDoc(dailyRef),
-        getDoc(doc(db, "users", effectiveUid)),
-        getDoc(monthlySummaryRef),
-      ]);
-
-      const oldDaily = dailySnap.exists() ? dailySnap.data() : {};
-      const oldStatus = String(oldDaily.status || "");
-      const oldGraceDeducted = Number(oldDaily.graceDeducted || 0);
-      const oldMinutesDelayed = Number(oldDaily.minutesDelayed || 0);
-      const oldWasLate = oldStatus === "Late";
-      const oldLateMinutes = oldWasLate
-        ? Math.max(0, oldMinutesDelayed - oldGraceDeducted)
-        : 0;
-
+      const userDoc = await getDoc(doc(db, "users", effectiveUid));
       const u = userDoc.data() || {};
       const shift: ShiftConfig = {
         startTime: String(u?.shift?.startTime || DEFAULT_SHIFT.startTime),
@@ -138,72 +115,6 @@ export function useAdminManageDay({
           u?.shift?.monthlyGraceAllowance ??
             DEFAULT_SHIFT.monthlyGraceAllowance,
         ),
-      };
-
-      // Ensure the summary doc exists so `increment()` operations behave
-      // relative to sensible defaults (otherwise `increment(-20)` on a
-      // missing graceRemaining would produce `-20`, not `30 - 20`).
-      if (!summarySnap.exists()) {
-        await setDoc(
-          monthlySummaryRef,
-          {
-            userId: effectiveUid,
-            month,
-            graceTotalAllowed: shift.monthlyGraceAllowance,
-            graceRemaining: shift.monthlyGraceAllowance,
-            graceUsed: 0,
-            totalLateMinutes: 0,
-            lateDays: 0,
-            presentDays: 0,
-            createdAt: nowIso,
-            updatedAt: nowIso,
-          },
-          { merge: true },
-        );
-      }
-
-      // ---- 2. Commit helper — writes daily + leave + summary reconciliation ----
-      const commitDay = async (
-        payload: Record<string, unknown>,
-        newStatus: string,
-        newGraceDeducted: number,
-        newMinutesDelayed: number,
-      ) => {
-        const newIsLate = newStatus === "Late";
-        const newLateMinutes = newIsLate
-          ? Math.max(0, newMinutesDelayed - newGraceDeducted)
-          : 0;
-
-        const graceDelta = newGraceDeducted - oldGraceDeducted;
-        const lateMinutesDelta = newLateMinutes - oldLateMinutes;
-
-        let lateDaysDelta = 0;
-        if (oldWasLate && !newIsLate) lateDaysDelta = -1;
-        else if (!oldWasLate && newIsLate) lateDaysDelta = 1;
-
-        const summaryUpdates: Record<string, unknown> = {};
-        if (graceDelta !== 0) {
-          summaryUpdates.graceRemaining = increment(-graceDelta);
-          summaryUpdates.graceUsed = increment(graceDelta);
-        }
-        if (lateMinutesDelta !== 0) {
-          summaryUpdates.totalLateMinutes = increment(lateMinutesDelta);
-        }
-        if (lateDaysDelta !== 0) {
-          summaryUpdates.lateDays = increment(lateDaysDelta);
-        }
-
-        const ops: Promise<unknown>[] = [
-          setDoc(dailyRef, payload, { merge: true }),
-          deleteDoc(leaveDocRef).catch(() => {}),
-        ];
-
-        if (Object.keys(summaryUpdates).length > 0) {
-          summaryUpdates.updatedAt = nowIso;
-          ops.push(setDoc(monthlySummaryRef, summaryUpdates, { merge: true }));
-        }
-
-        await Promise.all(ops);
       };
 
       const baseFields = {
@@ -215,125 +126,119 @@ export function useAdminManageDay({
         leaveType: deleteField(),
       };
 
-      // ---- 3. Branch on selected status ----
+      // ---- Write the target day's raw data ----
+      // We deliberately do NOT compute status/graceDeducted here.
+      // recomputeMonthlyAttendance below assigns them based on chronological
+      // pool consumption.
 
-      // PRESENT (on-site or WFH)
       if (selectedStatus === "Present") {
-        if (isWorkFromHome) {
-          await commitDay(
+        // On-site and WFH share a checkIn field. Status is placeholder.
+        const statusPlaceholder = isWorkFromHome ? "WFH" : "On Time";
+        await Promise.all([
+          setDoc(
+            dailyRef,
             {
               ...baseFields,
-              status: "WFH",
+              status: statusPlaceholder,
               checkIn: `${checkInTime}:00`,
               minutesDelayed: 0,
               graceDeducted: 0,
             },
-            "WFH",
-            0,
-            0,
-          );
-        } else {
-          const computed = computeAttendanceFromCheckIn(checkInTime, shift);
-          await commitDay(
+            { merge: true },
+          ),
+          deleteDoc(leaveDocRef).catch(() => {}),
+        ]);
+      } else if (selectedStatus === "Absent") {
+        await Promise.all([
+          setDoc(
+            dailyRef,
             {
               ...baseFields,
-              status: computed.status,
-              checkIn: `${checkInTime}:00`,
-              minutesDelayed: computed.minutesDelayed,
-              graceDeducted: computed.graceDeducted,
+              status: "Absent",
+              checkIn: null,
+              checkOut: null,
+              minutesDelayed: 0,
+              graceDeducted: 0,
             },
-            computed.status,
-            computed.graceDeducted,
-            computed.minutesDelayed,
-          );
-        }
-      }
-      // ABSENT
-      else if (selectedStatus === "Absent") {
-        await commitDay(
-          {
-            ...baseFields,
-            status: "Absent",
-            checkIn: null,
-            checkOut: null,
-            minutesDelayed: 0,
-            graceDeducted: 0,
-          },
-          "Absent",
-          0,
-          0,
-        );
-      }
-      // HALF DAY
-      else if (selectedStatus === "Half Day") {
-        await commitDay(
-          {
-            ...baseFields,
-            status: "Half Day",
-            minutesDelayed: 0,
-            graceDeducted: 0,
-          },
-          "Half Day",
-          0,
-          0,
-        );
-
-        await setDoc(
-          leaveDocRef,
-          {
-            userId: effectiveUid,
-            name: userData?.name || "Employee",
-            startDate: remarkDate,
-            endDate: remarkDate,
-            totalDays: 0.5,
-            durationType: "half",
-            leaveType: "Half Day",
-            status: "approved",
-            remarks: remarkText.trim() || "Marked by Admin",
-            source: "admin",
-            createdAt: nowIso,
-          },
-          { merge: true },
-        );
-      }
-      // LEAVE
-      else if (selectedStatus === "Leave") {
+            { merge: true },
+          ),
+          deleteDoc(leaveDocRef).catch(() => {}),
+        ]);
+      } else if (selectedStatus === "Half Day") {
+        await Promise.all([
+          setDoc(
+            dailyRef,
+            {
+              ...baseFields,
+              status: "Half Day",
+              minutesDelayed: 0,
+              graceDeducted: 0,
+            },
+            { merge: true },
+          ),
+          setDoc(
+            leaveDocRef,
+            {
+              userId: effectiveUid,
+              name: userData?.name || "Employee",
+              startDate: remarkDate,
+              endDate: remarkDate,
+              totalDays: 0.5,
+              durationType: "half",
+              leaveType: "Half Day",
+              status: "approved",
+              remarks: remarkText.trim() || "Marked by Admin",
+              source: "admin",
+              createdAt: nowIso,
+            },
+            { merge: true },
+          ),
+        ]);
+      } else if (selectedStatus === "Leave") {
         const finalLeaveType =
           leaveSubType === "unpaid" ? "Unpaid Leave" : "Casual Leave";
 
-        await commitDay(
-          {
-            ...baseFields,
-            status: "On Leave",
-            leaveType: finalLeaveType,
-            checkIn: null,
-            checkOut: null,
-            minutesDelayed: 0,
-            graceDeducted: 0,
-          },
-          "On Leave",
-          0,
-          0,
-        );
-
-        await setDoc(
-          leaveDocRef,
-          {
-            userId: effectiveUid,
-            name: userData?.name || "Employee",
-            startDate: remarkDate,
-            endDate: remarkDate,
-            totalDays: 1,
-            durationType: "single",
-            leaveType: finalLeaveType,
-            status: "approved",
-            remarks: remarkText.trim() || "Marked by Admin",
-            source: "admin",
-            createdAt: nowIso,
-          },
-          { merge: true },
-        );
+        await Promise.all([
+          setDoc(
+            dailyRef,
+            {
+              ...baseFields,
+              status: "On Leave",
+              leaveType: finalLeaveType,
+              checkIn: null,
+              checkOut: null,
+              minutesDelayed: 0,
+              graceDeducted: 0,
+            },
+            { merge: true },
+          ),
+          setDoc(
+            leaveDocRef,
+            {
+              userId: effectiveUid,
+              name: userData?.name || "Employee",
+              startDate: remarkDate,
+              endDate: remarkDate,
+              totalDays: 1,
+              durationType: "single",
+              leaveType: finalLeaveType,
+              status: "approved",
+              remarks: remarkText.trim() || "Marked by Admin",
+              source: "admin",
+              createdAt: nowIso,
+            },
+            { merge: true },
+          ),
+        ]);
       }
+
+      // ---- Recompute the whole month chronologically ----
+      await recomputeMonthlyAttendance(
+        effectiveUid,
+        month,
+        shift,
+        userData?.name,
+      );
 
       setIsOpen(false);
     } catch (err) {
