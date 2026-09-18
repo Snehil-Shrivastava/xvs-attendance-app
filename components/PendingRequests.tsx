@@ -20,8 +20,10 @@
 //   userId: string;
 //   name: string;
 //   type: string; // "Late Request", "Casual Leave", "Attendance Correction", etc.
-//   detail: string; // "Arriving at: 10:30 AM" or date range
-//   appliedAt: string; // "07/09/26 | 09:30am"
+//   dateDetail: string; // Date on line 1
+//   timeDetail?: string; // Time on line 2
+//   appliedDate: string; // Applied date on line 1
+//   appliedTime: string; // Applied time on line 2
 //   status: "pending" | "approved" | "denied";
 // }
 
@@ -31,7 +33,7 @@
 //   return fullName.trim().split(" ")[0] || "Employee";
 // };
 
-// // Helper: Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM" (same as RequestsHistory)
+// // Helper: Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM"
 // const formatTimeStr = (t?: string | null) => {
 //   if (!t) return "";
 //   if (t.includes("AM") || t.includes("PM")) return t;
@@ -46,7 +48,7 @@
 //   }
 // };
 
-// // Helper: Format "2026-08-11" -> "11 Aug 2026" (same as RequestsHistory)
+// // Helper: Format "2026-08-11" -> "11 Aug 2026"
 // const formatDate = (dateStr?: string) => {
 //   if (!dateStr) return "--";
 //   try {
@@ -68,7 +70,7 @@
 //   const [loading, setLoading] = useState(true);
 //   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-//   // Helper: Format timestamp into "07/09/26 | 09:30am"
+//   // Helper: Splits applied timestamp into separate date and time strings
 //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 //   const formatAppliedTime = (createdAt?: any) => {
 //     try {
@@ -83,15 +85,17 @@
 //       hours = hours % 12 || 12;
 //       const hh = String(hours).padStart(2, "0");
 
-//       return `${dd}/${mm}/${yy} | ${hh}:${mins}${ampm}`;
+//       return {
+//         date: `${dd}/${mm}/${yy}`,
+//         time: `${hh}:${mins}${ampm}`,
+//       };
 //     } catch {
-//       return "--/--/-- | --:--";
+//       return { date: "--/--/--", time: "--:--" };
 //     }
 //   };
 
 //   useEffect(() => {
 //     if (!user || userData?.role !== "admin") return;
-//     // eslint-disable-next-line react-hooks/set-state-in-effect
 //     setLoading(true);
 
 //     let allLeaves: PendingItem[] = [];
@@ -113,15 +117,24 @@
 //       snapshot.forEach((docSnap) => {
 //         const data = docSnap.data();
 
-//         const dateDetail =
-//           data.startDate === data.endDate
-//             ? `Date: ${formatDate(data.startDate)}`
-//             : `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`;
+//         const isHalfDay =
+//           data.leaveType === "Half Day" ||
+//           data.durationType === "half" ||
+//           (data.fromTime && data.toTime);
 
-//         const timeDetail =
-//           data.fromTime && data.toTime
-//             ? `${formatDate(data.startDate)} | ${formatTimeStr(data.fromTime)} - ${formatTimeStr(data.toTime)}`
-//             : null;
+//         let dateLine = "";
+//         let timeLine = "";
+
+//         if (isHalfDay && data.fromTime && data.toTime) {
+//           dateLine = formatDate(data.startDate);
+//           timeLine = `${formatTimeStr(data.fromTime)} - ${formatTimeStr(data.toTime)}`;
+//         } else if (data.startDate === data.endDate || !data.endDate) {
+//           dateLine = formatDate(data.startDate);
+//         } else {
+//           dateLine = `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`;
+//         }
+
+//         const applied = formatAppliedTime(data.createdAt);
 
 //         allLeaves.push({
 //           id: docSnap.id,
@@ -129,8 +142,10 @@
 //           userId: data.userId || "---",
 //           name: data.name || "Employee",
 //           type: data.leaveType || "Leave",
-//           detail: timeDetail ?? dateDetail,
-//           appliedAt: formatAppliedTime(data.createdAt),
+//           dateDetail: dateLine,
+//           timeDetail: timeLine,
+//           appliedDate: applied.date,
+//           appliedTime: applied.time,
 //           status: data.status || "pending",
 //         });
 //       });
@@ -146,14 +161,21 @@
 //       allLate = [];
 //       snapshot.forEach((docSnap) => {
 //         const data = docSnap.data();
+
+//         const dateLine = formatDate(data.date);
+//         const timeLine = `Arriving at: ${formatTimeStr(data.newArrivalTime || "10:00 AM")}`;
+//         const applied = formatAppliedTime(data.createdAt);
+
 //         allLate.push({
 //           id: docSnap.id,
 //           collectionName: "late_arrivals",
 //           userId: data.userId || "---",
 //           name: data.name || "Employee",
 //           type: "Late Request",
-//           detail: `Arriving at: ${formatTimeStr(data.newArrivalTime || "10:00 AM")}`,
-//           appliedAt: formatAppliedTime(data.createdAt),
+//           dateDetail: dateLine,
+//           timeDetail: timeLine,
+//           appliedDate: applied.date,
+//           appliedTime: applied.time,
 //           status: data.status || "pending",
 //         });
 //       });
@@ -169,14 +191,21 @@
 //       allCorrections = [];
 //       snapshot.forEach((docSnap) => {
 //         const data = docSnap.data();
+
+//         const dateLine = formatDate(data.date);
+//         const timeLine = data.remarks ? `"${data.remarks}"` : "";
+//         const applied = formatAppliedTime(data.createdAt);
+
 //         allCorrections.push({
 //           id: docSnap.id,
 //           collectionName: "attendance_corrections",
 //           userId: data.userId || "---",
 //           name: data.name || "Employee",
 //           type: "Attendance Correction",
-//           detail: `Date: ${formatDate(data.date || "")}`,
-//           appliedAt: formatAppliedTime(data.createdAt),
+//           dateDetail: dateLine,
+//           timeDetail: timeLine,
+//           appliedDate: applied.date,
+//           appliedTime: applied.time,
 //           status: data.status || "pending",
 //         });
 //       });
@@ -208,22 +237,25 @@
 //         const isApproved = newStatus === "approved";
 //         const actionText = isApproved ? "Approved" : "Denied";
 
+//         const detailSummary = item.timeDetail
+//           ? `${item.dateDetail} (${item.timeDetail})`
+//           : item.dateDetail;
+
 //         let title = `${item.type} ${actionText}`;
-//         let body = `Your ${item.type.toLowerCase()} (${item.detail}) has been ${actionText.toLowerCase()}.`;
+//         let body = `Your ${item.type.toLowerCase()} (${detailSummary}) has been ${actionText.toLowerCase()}.`;
 //         let url = "/attendance";
 
-//         // Customize specific messages and redirect URLs based on request type
 //         if (item.collectionName === "leaves") {
 //           title = `Leave Request ${actionText}`;
-//           body = `Your ${item.type} for ${item.detail} has been ${actionText.toLowerCase()}.`;
+//           body = `Your ${item.type} for ${detailSummary} has been ${actionText.toLowerCase()}.`;
 //           url = "/leaves";
 //         } else if (item.collectionName === "late_arrivals") {
 //           title = `Late Arrival Request ${actionText}`;
-//           body = `Your late arrival request (${item.detail}) has been ${actionText.toLowerCase()}.`;
+//           body = `Your late arrival request (${detailSummary}) has been ${actionText.toLowerCase()}.`;
 //           url = "/attendance";
 //         } else if (item.collectionName === "attendance_corrections") {
 //           title = `Attendance Correction ${actionText}`;
-//           body = `Your attendance correction request for ${item.detail} has been ${actionText.toLowerCase()}.`;
+//           body = `Your attendance correction request for ${detailSummary} has been ${actionText.toLowerCase()}.`;
 //           url = "/attendance";
 //         }
 
@@ -266,7 +298,7 @@
 //             {requests.map((item) => (
 //               <div
 //                 key={item.id}
-//                 className="grid grid-cols-12 items-center py-2 first:pt-0 last:pb-0 gap-3 text-xs"
+//                 className="grid grid-cols-12 items-center py-2.5 first:pt-0 last:pb-0 gap-3 text-xs"
 //               >
 //                 {/* Column 1: Employee First Name & ID */}
 //                 <div className="col-span-2 flex flex-col">
@@ -281,23 +313,31 @@
 //                   </span>
 //                 </div>
 
-//                 {/* Column 2: Request Type & Detail */}
+//                 {/* Column 2: Request Type & Detail (Date on Line 1, Time on Line 2) */}
 //                 <div className="col-span-4 flex flex-col">
-//                   <span className="font-normal text-[8px] text-[#231F20]">
+//                   <span className="font-semibold text-[8px] text-[#231F20]">
 //                     {item.type}
 //                   </span>
-//                   <span className="text-[8px] text-[#8C827A] font-light leading-snug">
-//                     {item.detail}
+//                   <span className="text-[8px] text-[#8C827A] font-light leading-tight mt-0.5">
+//                     {item.dateDetail}
 //                   </span>
+//                   {item.timeDetail && (
+//                     <span className="text-[8px] text-[#8C827A] font-light leading-tight">
+//                       {item.timeDetail}
+//                     </span>
+//                   )}
 //                 </div>
 
-//                 {/* Column 3: Date & Time Applied */}
+//                 {/* Column 3: Date & Time Applied (Date on Line 1, Time on Line 2) */}
 //                 <div className="col-span-4 flex flex-col">
 //                   <span className="font-normal text-[8px] text-[#231F20]">
 //                     Date & Time Applied
 //                   </span>
-//                   <span className="text-[8px] text-[#8C827A] font-light">
-//                     {item.appliedAt}
+//                   <span className="text-[8px] text-[#8C827A] font-light leading-tight mt-0.5">
+//                     {item.appliedDate}
+//                   </span>
+//                   <span className="text-[8px] text-[#8C827A] font-light leading-tight">
+//                     {item.appliedTime}
 //                   </span>
 //                 </div>
 
@@ -353,103 +393,63 @@
 
 // export default PendingRequests;
 
-// ---------------------------------------------------------------
+// --------------------------------------------------------------------------
 
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { ChevronDown, Loader2 } from "lucide-react";
-import { sendPushNotificationToUser } from "@/app/actions/notifications";
+import { useRequestActions } from "@/hooks/useRequestActions";
+import {
+  getFirstName,
+  formatDate,
+  formatTimeStr,
+  formatAppliedTime,
+} from "@/lib/requestFormat";
+import { buildRequestNotification } from "@/lib/requestNotifications";
+import { applyLateArrivalApproval } from "@/lib/lateArrival";
 
 interface PendingItem {
   id: string;
   collectionName: "leaves" | "late_arrivals" | "attendance_corrections";
   userId: string;
   name: string;
-  type: string; // "Late Request", "Casual Leave", "Attendance Correction", etc.
-  dateDetail: string; // Date on line 1
-  timeDetail?: string; // Time on line 2
-  appliedDate: string; // Applied date on line 1
-  appliedTime: string; // Applied time on line 2
+  type: string;
+  dateDetail: string;
+  timeDetail?: string;
+  appliedDate: string;
+  appliedTime: string;
   status: "pending" | "approved" | "denied";
 }
-
-// Helper: Extract only the first name
-const getFirstName = (fullName: string) => {
-  if (!fullName) return "Employee";
-  return fullName.trim().split(" ")[0] || "Employee";
-};
-
-// Helper: Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM"
-const formatTimeStr = (t?: string | null) => {
-  if (!t) return "";
-  if (t.includes("AM") || t.includes("PM")) return t;
-  try {
-    const [h, m] = t.split(":");
-    let hours = parseInt(h, 10);
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    return `${String(hours).padStart(2, "0")}:${m} ${ampm}`;
-  } catch {
-    return t;
-  }
-};
-
-// Helper: Format "2026-08-11" -> "11 Aug 2026"
-const formatDate = (dateStr?: string) => {
-  if (!dateStr) return "--";
-  try {
-    const [year, month, day] = dateStr.split("-");
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
-    const dayFormatted = String(date.getDate()).padStart(2, "0");
-    const monthFormatted = date.toLocaleDateString("en-GB", {
-      month: "short",
-    });
-    return `${dayFormatted} ${monthFormatted} ${year}`;
-  } catch {
-    return dateStr;
-  }
-};
 
 const PendingRequests = () => {
   const { user, userData } = useAuth();
   const [requests, setRequests] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Helper: Splits applied timestamp into separate date and time strings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatAppliedTime = (createdAt?: any) => {
-    try {
-      const date = createdAt?.toDate ? createdAt.toDate() : new Date();
-      const dd = String(date.getDate()).padStart(2, "0");
-      const mm = String(date.getMonth() + 1).padStart(2, "0");
-      const yy = String(date.getFullYear()).slice(-2);
-
-      let hours = date.getHours();
-      const mins = String(date.getMinutes()).padStart(2, "0");
-      const ampm = hours >= 12 ? "pm" : "am";
-      hours = hours % 12 || 12;
-      const hh = String(hours).padStart(2, "0");
-
-      return {
-        date: `${dd}/${mm}/${yy}`,
-        time: `${hh}:${mins}${ampm}`,
-      };
-    } catch {
-      return { date: "--/--/--", time: "--:--" };
-    }
-  };
+  const { updatingId, changeStatus } = useRequestActions<PendingItem>({
+    buildNotification: (item, status) => {
+      const detailSummary = item.timeDetail
+        ? `${item.dateDetail} (${item.timeDetail})`
+        : item.dateDetail;
+      return buildRequestNotification(
+        {
+          collectionName: item.collectionName,
+          type: item.type,
+          detail: detailSummary,
+        },
+        status,
+      );
+    },
+    onApproved: async (item) => {
+      if (item.collectionName === "late_arrivals") {
+        await applyLateArrivalApproval(item.id);
+      }
+    },
+  });
 
   useEffect(() => {
     if (!user || userData?.role !== "admin") return;
@@ -464,7 +464,7 @@ const PendingRequests = () => {
       setLoading(false);
     };
 
-    // 1. Listen to pending leaves
+    // 1. Pending leaves
     const qLeaves = query(
       collection(db, "leaves"),
       where("status", "==", "pending"),
@@ -509,7 +509,7 @@ const PendingRequests = () => {
       updateCombined();
     });
 
-    // 2. Listen to pending late arrivals
+    // 2. Pending late arrivals
     const qLate = query(
       collection(db, "late_arrivals"),
       where("status", "==", "pending"),
@@ -518,9 +518,6 @@ const PendingRequests = () => {
       allLate = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-
-        const dateLine = formatDate(data.date);
-        const timeLine = `Arriving at: ${formatTimeStr(data.newArrivalTime || "10:00 AM")}`;
         const applied = formatAppliedTime(data.createdAt);
 
         allLate.push({
@@ -529,8 +526,8 @@ const PendingRequests = () => {
           userId: data.userId || "---",
           name: data.name || "Employee",
           type: "Late Request",
-          dateDetail: dateLine,
-          timeDetail: timeLine,
+          dateDetail: formatDate(data.date),
+          timeDetail: `Arriving at: ${formatTimeStr(data.newArrivalTime || "10:00 AM")}`,
           appliedDate: applied.date,
           appliedTime: applied.time,
           status: data.status || "pending",
@@ -539,7 +536,7 @@ const PendingRequests = () => {
       updateCombined();
     });
 
-    // 3. Listen to pending attendance corrections
+    // 3. Pending attendance corrections
     const qCorrections = query(
       collection(db, "attendance_corrections"),
       where("status", "==", "pending"),
@@ -548,9 +545,6 @@ const PendingRequests = () => {
       allCorrections = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-
-        const dateLine = formatDate(data.date);
-        const timeLine = data.remarks ? `"${data.remarks}"` : "";
         const applied = formatAppliedTime(data.createdAt);
 
         allCorrections.push({
@@ -559,8 +553,8 @@ const PendingRequests = () => {
           userId: data.userId || "---",
           name: data.name || "Employee",
           type: "Attendance Correction",
-          dateDetail: dateLine,
-          timeDetail: timeLine,
+          dateDetail: formatDate(data.date),
+          timeDetail: data.remarks ? `"${data.remarks}"` : "",
           appliedDate: applied.date,
           appliedTime: applied.time,
           status: data.status || "pending",
@@ -576,70 +570,14 @@ const PendingRequests = () => {
     };
   }, [user, userData]);
 
-  // Handle Admin Status Change (Approved / Denied)
-  const handleStatusChange = async (item: PendingItem, newStatus: string) => {
-    if (newStatus === "pending") return;
-
-    try {
-      setUpdatingId(item.id);
-      const docRef = doc(db, item.collectionName, item.id);
-
-      await updateDoc(docRef, {
-        status: newStatus,
-        reviewedBy: user?.uid,
-        reviewedAt: new Date().toISOString(),
-      });
-
-      if (newStatus === "approved" || newStatus === "denied") {
-        const isApproved = newStatus === "approved";
-        const actionText = isApproved ? "Approved" : "Denied";
-
-        const detailSummary = item.timeDetail
-          ? `${item.dateDetail} (${item.timeDetail})`
-          : item.dateDetail;
-
-        let title = `${item.type} ${actionText}`;
-        let body = `Your ${item.type.toLowerCase()} (${detailSummary}) has been ${actionText.toLowerCase()}.`;
-        let url = "/attendance";
-
-        if (item.collectionName === "leaves") {
-          title = `Leave Request ${actionText}`;
-          body = `Your ${item.type} for ${detailSummary} has been ${actionText.toLowerCase()}.`;
-          url = "/leaves";
-        } else if (item.collectionName === "late_arrivals") {
-          title = `Late Arrival Request ${actionText}`;
-          body = `Your late arrival request (${detailSummary}) has been ${actionText.toLowerCase()}.`;
-          url = "/attendance";
-        } else if (item.collectionName === "attendance_corrections") {
-          title = `Attendance Correction ${actionText}`;
-          body = `Your attendance correction request for ${detailSummary} has been ${actionText.toLowerCase()}.`;
-          url = "/attendance";
-        }
-
-        await sendPushNotificationToUser({
-          targetUserId: item.userId,
-          title,
-          body,
-          url,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating request status:", error);
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
   if (userData?.role !== "admin") return null;
 
   return (
     <div className="w-full font-poppins text-black mb-6">
-      {/* Section Header */}
       <span className="text-[10px] opacity-50 font-normal">
         Pending Requests
       </span>
 
-      {/* Main Container */}
       <div className="border border-[#E5DEC9] bg-transparent p-2 rounded-xs mt-3">
         {loading ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -657,7 +595,6 @@ const PendingRequests = () => {
                 key={item.id}
                 className="grid grid-cols-12 items-center py-2.5 first:pt-0 last:pb-0 gap-3 text-xs"
               >
-                {/* Column 1: Employee First Name & ID */}
                 <div className="col-span-2 flex flex-col">
                   <span
                     className="font-semibold text-[8px] text-[#231F20] tracking-wide"
@@ -670,7 +607,6 @@ const PendingRequests = () => {
                   </span>
                 </div>
 
-                {/* Column 2: Request Type & Detail (Date on Line 1, Time on Line 2) */}
                 <div className="col-span-4 flex flex-col">
                   <span className="font-semibold text-[8px] text-[#231F20]">
                     {item.type}
@@ -685,7 +621,6 @@ const PendingRequests = () => {
                   )}
                 </div>
 
-                {/* Column 3: Date & Time Applied (Date on Line 1, Time on Line 2) */}
                 <div className="col-span-4 flex flex-col">
                   <span className="font-normal text-[8px] text-[#231F20]">
                     Date & Time Applied
@@ -698,7 +633,6 @@ const PendingRequests = () => {
                   </span>
                 </div>
 
-                {/* Column 4: Admin Action Dropdown */}
                 <div className="col-span-2 flex justify-end">
                   {updatingId === item.id ? (
                     <div className="flex items-center justify-center w-24 py-1.5 border border-[#8C827A]/50 rounded-xs">
@@ -716,9 +650,7 @@ const PendingRequests = () => {
                     <div className="relative inline-flex items-center border border-[#231F20] rounded-xs bg-transparent py-1">
                       <select
                         defaultValue="pending"
-                        onChange={(e) =>
-                          handleStatusChange(item, e.target.value)
-                        }
+                        onChange={(e) => changeStatus(item, e.target.value)}
                         className="bg-transparent text-[8px] text-[#231F20] font-medium appearance-none focus:outline-none cursor-pointer px-1.5 pr-5.5 select-none"
                       >
                         <option

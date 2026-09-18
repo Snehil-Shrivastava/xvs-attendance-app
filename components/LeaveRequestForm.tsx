@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, Loader2, Clock } from "lucide-react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { buildLeaveDocId } from "@/lib/leaveCalc";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import LeaveFormSuccessModal from "@/components/LeaveFormSuccessModal";
@@ -223,7 +224,23 @@ const LeaveRequestForm = () => {
     }
 
     try {
-      await addDoc(collection(db, "leaves"), {
+      // Fix #5: deterministic doc ID so a user re-submission and an admin
+      // calendar-mark for the same date collapse into one document.
+      const leaveDocId = buildLeaveDocId(start, end, user.uid);
+      const leaveDocRef = doc(db, "leaves", leaveDocId);
+
+      // Guard: never silently overwrite a leave that admin has already approved.
+      // Denied / pending → allow overwrite (user is refining / re-applying).
+      const existing = await getDoc(leaveDocRef);
+      if (existing.exists() && existing.data()?.status === "approved") {
+        setErrorMsg(
+          "A leave for this date has already been approved. Please contact admin to modify it.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      await setDoc(leaveDocRef, {
         userId: user.uid,
         name: userData?.name || "Employee",
         durationType: leaveDuration,
@@ -235,31 +252,9 @@ const LeaveRequestForm = () => {
         toTime: leaveDuration === "half" ? toTime : null,
         remarks: remarks,
         status: "pending",
+        source: "user", // ← new: audit trail, mirrors "admin" on calendar writes
         createdAt: serverTimestamp(),
       });
-
-      let leaveDetail = `${finalLeaveType} (${start === end ? start : `${start} to ${end}`})`;
-      if (leaveDuration === "half") {
-        leaveDetail = `Half Day on ${start} (${fromTime} - ${toTime})`;
-      }
-
-      notifyAdminsOfNewRequest({
-        employeeName: userData?.name || "Employee",
-        requestType: "Leave",
-        details: leaveDetail,
-        url: "/requests",
-      }).catch((err) => console.error("Admin notification error:", err));
-
-      // Clear form inputs
-      setSingleDate("");
-      setStartDate("");
-      setEndDate("");
-      setFromTime("09:00");
-      setToTime("13:00");
-      setRemarks("");
-
-      // Open Success Modal
-      setShowSuccessModal(true);
     } catch (error: unknown) {
       console.error("Error submitting leave request:", error);
       setErrorMsg(
