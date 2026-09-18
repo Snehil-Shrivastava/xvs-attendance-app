@@ -302,7 +302,6 @@ export async function POST(req: NextRequest) {
   console.log("receivedAt:", receivedAt);
   console.log("bodyText:", bodyText);
 
-  // Raw archive (keep for now, we remove it later)
   try {
     await adminDb
       .collection("webhook_raw_events")
@@ -357,8 +356,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- Late-arrival approval override ----
-    // If an approved late_arrivals request exists for this user+date, use its
-    // newArrivalTime as the effective shift start for this day's classification.
     let effectiveShiftStart = shiftStartTime;
     try {
       const lateSnap = await adminDb
@@ -417,10 +414,11 @@ export async function POST(req: NextRequest) {
       let status = "On Time";
       if (delayMins > 0) {
         if (graceRemaining >= delayMins) {
+          // Fully within grace → still "On Time", but grace is consumed.
           graceDeducted = delayMins;
           graceRemaining -= delayMins;
           graceUsed += delayMins;
-          status = "Grace Used";
+          status = "On Time";
         } else if (graceRemaining > 0) {
           graceDeducted = graceRemaining;
           const lateMinutes = delayMins - graceRemaining;
