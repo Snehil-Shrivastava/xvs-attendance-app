@@ -15,6 +15,9 @@ export interface UserProfile {
   role: "employee" | "admin";
   mustChangePassword?: boolean;
   isActive?: boolean;
+  leaves?: {
+    annualQuota?: number;
+  };
 }
 
 interface AuthContextType {
