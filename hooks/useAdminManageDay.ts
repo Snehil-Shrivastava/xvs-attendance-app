@@ -2,9 +2,20 @@
 "use client";
 
 import { useState } from "react";
-import { doc, setDoc, deleteDoc, increment } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  increment,
+  deleteField,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { DayRecord } from "@/lib/calendarStatus";
+import {
+  computeAttendanceFromCheckIn,
+  type ShiftConfig,
+} from "@/lib/attendanceStatus";
 
 type ManageStatus = "Present" | "Absent" | "Half Day" | "Leave";
 type LeaveSubType = "normal" | "unpaid";
@@ -33,6 +44,11 @@ export interface UseAdminManageDayReturn {
   save: (e: React.FormEvent) => Promise<void>;
 }
 
+const DEFAULT_SHIFT: ShiftConfig = {
+  startTime: "09:00:00",
+  monthlyGraceAllowance: 30,
+};
+
 export function useAdminManageDay({
   effectiveUid,
   userData,
@@ -52,7 +68,6 @@ export function useAdminManageDay({
     setRemarkDate(dateStr);
     setRemarkText(record?.remark || "");
 
-    // Pre-populate status from existing data
     if (record?.status === "On Leave" || approvedLeavesMap[dateStr]) {
       setSelectedStatus("Leave");
       setLeaveSubType(
@@ -95,66 +110,101 @@ export function useAdminManageDay({
       const existingRecord = monthlyRecords[remarkDate];
       const wasPreviouslyLate = existingRecord?.status === "Late";
 
-      const decrementLateIfNeeded = async () => {
-        if (!wasPreviouslyLate) return;
-        await setDoc(
-          monthlySummaryRef,
-          { lateDays: increment(-1) },
-          { merge: true },
-        );
+      // Fetch the target user's shift config once (only needed for Present,
+      // but cheap enough to always read — one doc get per admin action).
+      const userDoc = await getDoc(doc(db, "users", effectiveUid));
+      const u = userDoc.data() || {};
+      const shift: ShiftConfig = {
+        startTime: String(u?.shift?.startTime || DEFAULT_SHIFT.startTime),
+        monthlyGraceAllowance: Number(
+          u?.shift?.monthlyGraceAllowance ??
+            DEFAULT_SHIFT.monthlyGraceAllowance,
+        ),
       };
 
-      // 1. PRESENT
+      // Generalized commit — runs all writes concurrently and reconciles
+      // the `lateDays` counter in both directions.
+      const commitDay = async (
+        payload: Record<string, unknown>,
+        willBeLate: boolean,
+      ) => {
+        const ops: Promise<unknown>[] = [
+          setDoc(dailyRef, payload, { merge: true }),
+          deleteDoc(leaveDocRef).catch(() => {}),
+        ];
+
+        if (wasPreviouslyLate && !willBeLate) {
+          ops.push(
+            setDoc(
+              monthlySummaryRef,
+              { lateDays: increment(-1) },
+              { merge: true },
+            ),
+          );
+        } else if (!wasPreviouslyLate && willBeLate) {
+          ops.push(
+            setDoc(
+              monthlySummaryRef,
+              { lateDays: increment(1) },
+              { merge: true },
+            ),
+          );
+        }
+
+        await Promise.all(ops);
+      };
+
+      // Fields common to every admin write.
+      const baseFields = {
+        userId: effectiveUid,
+        date: remarkDate,
+        month,
+        remark: remarkText.trim(),
+        updatedAt: nowIso,
+        leaveType: deleteField(),
+      };
+
+      // 1. PRESENT — classify via shift + grace, same rules as the webhook.
       if (selectedStatus === "Present") {
-        await setDoc(
-          dailyRef,
+        const computed = computeAttendanceFromCheckIn(checkInTime, shift);
+
+        await commitDay(
           {
-            userId: effectiveUid,
-            date: remarkDate,
-            month,
-            status: "On Time",
+            ...baseFields,
+            status: computed.status, // "On Time" | "Grace Used" | "Late"
             checkIn: `${checkInTime}:00`,
-            remark: remarkText.trim(),
-            updatedAt: nowIso,
+            minutesDelayed: computed.minutesDelayed,
+            graceDeducted: computed.graceDeducted,
           },
-          { merge: true },
+          computed.status === "Late",
         );
-        await deleteDoc(leaveDocRef).catch(() => {});
-        await decrementLateIfNeeded();
       }
       // 2. ABSENT
       else if (selectedStatus === "Absent") {
-        await setDoc(
-          dailyRef,
+        await commitDay(
           {
-            userId: effectiveUid,
-            date: remarkDate,
-            month,
+            ...baseFields,
             status: "Absent",
             checkIn: null,
             checkOut: null,
-            remark: remarkText.trim(),
-            updatedAt: nowIso,
+            minutesDelayed: 0,
+            graceDeducted: 0,
           },
-          { merge: true },
+          false,
         );
-        await deleteDoc(leaveDocRef).catch(() => {});
-        await decrementLateIfNeeded();
       }
       // 3. HALF DAY
       else if (selectedStatus === "Half Day") {
-        await setDoc(
-          dailyRef,
+        await commitDay(
           {
-            userId: effectiveUid,
-            date: remarkDate,
-            month,
+            ...baseFields,
             status: "Half Day",
-            remark: remarkText.trim(),
-            updatedAt: nowIso,
+            minutesDelayed: 0,
+            graceDeducted: 0,
           },
-          { merge: true },
+          false,
         );
+
         await setDoc(
           leaveDocRef,
           {
@@ -172,28 +222,25 @@ export function useAdminManageDay({
           },
           { merge: true },
         );
-        await decrementLateIfNeeded();
       }
       // 4. LEAVE
       else if (selectedStatus === "Leave") {
         const finalLeaveType =
           leaveSubType === "unpaid" ? "Unpaid Leave" : "Casual Leave";
 
-        await setDoc(
-          dailyRef,
+        await commitDay(
           {
-            userId: effectiveUid,
-            date: remarkDate,
-            month,
+            ...baseFields,
             status: "On Leave",
             leaveType: finalLeaveType,
             checkIn: null,
             checkOut: null,
-            remark: remarkText.trim(),
-            updatedAt: nowIso,
+            minutesDelayed: 0,
+            graceDeducted: 0,
           },
-          { merge: true },
+          false,
         );
+
         await setDoc(
           leaveDocRef,
           {
@@ -211,7 +258,6 @@ export function useAdminManageDay({
           },
           { merge: true },
         );
-        await decrementLateIfNeeded();
       }
 
       setIsOpen(false);
