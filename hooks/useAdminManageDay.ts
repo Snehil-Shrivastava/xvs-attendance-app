@@ -71,7 +71,6 @@ export function useAdminManageDay({
     setRemarkDate(dateStr);
     setRemarkText(record?.remark || "");
 
-    // Pre-populate status from existing data
     if (record?.status === "On Leave" || approvedLeavesMap[dateStr]) {
       setSelectedStatus("Leave");
       setLeaveSubType(
@@ -85,7 +84,6 @@ export function useAdminManageDay({
       setSelectedStatus("Present");
     }
 
-    // Pre-populate WFH flag (accept legacy alias too)
     setIsWorkFromHome(
       record?.status === "WFH" || record?.status === "Work from Home",
     );
@@ -104,6 +102,7 @@ export function useAdminManageDay({
     try {
       const month = remarkDate.slice(0, 7);
       const nowIso = new Date().toISOString();
+
       const dailyRef = doc(
         db,
         "daily_attendance",
@@ -116,11 +115,22 @@ export function useAdminManageDay({
         `${month}_${effectiveUid}`,
       );
 
-      const existingRecord = monthlyRecords[remarkDate];
-      const wasPreviouslyLate = existingRecord?.status === "Late";
+      // ---- 1. Read prior state (attendance + shift + summary) ----
+      const [dailySnap, userDoc, summarySnap] = await Promise.all([
+        getDoc(dailyRef),
+        getDoc(doc(db, "users", effectiveUid)),
+        getDoc(monthlySummaryRef),
+      ]);
 
-      // Fetch target user's shift config for Present classification.
-      const userDoc = await getDoc(doc(db, "users", effectiveUid));
+      const oldDaily = dailySnap.exists() ? dailySnap.data() : {};
+      const oldStatus = String(oldDaily.status || "");
+      const oldGraceDeducted = Number(oldDaily.graceDeducted || 0);
+      const oldMinutesDelayed = Number(oldDaily.minutesDelayed || 0);
+      const oldWasLate = oldStatus === "Late";
+      const oldLateMinutes = oldWasLate
+        ? Math.max(0, oldMinutesDelayed - oldGraceDeducted)
+        : 0;
+
       const u = userDoc.data() || {};
       const shift: ShiftConfig = {
         startTime: String(u?.shift?.startTime || DEFAULT_SHIFT.startTime),
@@ -130,33 +140,67 @@ export function useAdminManageDay({
         ),
       };
 
-      // Commit helper — runs all writes in parallel and reconciles
-      // the `lateDays` counter in both directions.
+      // Ensure the summary doc exists so `increment()` operations behave
+      // relative to sensible defaults (otherwise `increment(-20)` on a
+      // missing graceRemaining would produce `-20`, not `30 - 20`).
+      if (!summarySnap.exists()) {
+        await setDoc(
+          monthlySummaryRef,
+          {
+            userId: effectiveUid,
+            month,
+            graceTotalAllowed: shift.monthlyGraceAllowance,
+            graceRemaining: shift.monthlyGraceAllowance,
+            graceUsed: 0,
+            totalLateMinutes: 0,
+            lateDays: 0,
+            presentDays: 0,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          },
+          { merge: true },
+        );
+      }
+
+      // ---- 2. Commit helper — writes daily + leave + summary reconciliation ----
       const commitDay = async (
         payload: Record<string, unknown>,
-        willBeLate: boolean,
+        newStatus: string,
+        newGraceDeducted: number,
+        newMinutesDelayed: number,
       ) => {
+        const newIsLate = newStatus === "Late";
+        const newLateMinutes = newIsLate
+          ? Math.max(0, newMinutesDelayed - newGraceDeducted)
+          : 0;
+
+        const graceDelta = newGraceDeducted - oldGraceDeducted;
+        const lateMinutesDelta = newLateMinutes - oldLateMinutes;
+
+        let lateDaysDelta = 0;
+        if (oldWasLate && !newIsLate) lateDaysDelta = -1;
+        else if (!oldWasLate && newIsLate) lateDaysDelta = 1;
+
+        const summaryUpdates: Record<string, unknown> = {};
+        if (graceDelta !== 0) {
+          summaryUpdates.graceRemaining = increment(-graceDelta);
+          summaryUpdates.graceUsed = increment(graceDelta);
+        }
+        if (lateMinutesDelta !== 0) {
+          summaryUpdates.totalLateMinutes = increment(lateMinutesDelta);
+        }
+        if (lateDaysDelta !== 0) {
+          summaryUpdates.lateDays = increment(lateDaysDelta);
+        }
+
         const ops: Promise<unknown>[] = [
           setDoc(dailyRef, payload, { merge: true }),
           deleteDoc(leaveDocRef).catch(() => {}),
         ];
 
-        if (wasPreviouslyLate && !willBeLate) {
-          ops.push(
-            setDoc(
-              monthlySummaryRef,
-              { lateDays: increment(-1) },
-              { merge: true },
-            ),
-          );
-        } else if (!wasPreviouslyLate && willBeLate) {
-          ops.push(
-            setDoc(
-              monthlySummaryRef,
-              { lateDays: increment(1) },
-              { merge: true },
-            ),
-          );
+        if (Object.keys(summaryUpdates).length > 0) {
+          summaryUpdates.updatedAt = nowIso;
+          ops.push(setDoc(monthlySummaryRef, summaryUpdates, { merge: true }));
         }
 
         await Promise.all(ops);
@@ -171,10 +215,11 @@ export function useAdminManageDay({
         leaveType: deleteField(),
       };
 
-      // 1. PRESENT (on-site or WFH)
+      // ---- 3. Branch on selected status ----
+
+      // PRESENT (on-site or WFH)
       if (selectedStatus === "Present") {
         if (isWorkFromHome) {
-          // WFH overrides late/grace classification.
           await commitDay(
             {
               ...baseFields,
@@ -183,11 +228,12 @@ export function useAdminManageDay({
               minutesDelayed: 0,
               graceDeducted: 0,
             },
-            false,
+            "WFH",
+            0,
+            0,
           );
         } else {
           const computed = computeAttendanceFromCheckIn(checkInTime, shift);
-
           await commitDay(
             {
               ...baseFields,
@@ -196,11 +242,13 @@ export function useAdminManageDay({
               minutesDelayed: computed.minutesDelayed,
               graceDeducted: computed.graceDeducted,
             },
-            computed.status === "Late",
+            computed.status,
+            computed.graceDeducted,
+            computed.minutesDelayed,
           );
         }
       }
-      // 2. ABSENT
+      // ABSENT
       else if (selectedStatus === "Absent") {
         await commitDay(
           {
@@ -211,10 +259,12 @@ export function useAdminManageDay({
             minutesDelayed: 0,
             graceDeducted: 0,
           },
-          false,
+          "Absent",
+          0,
+          0,
         );
       }
-      // 3. HALF DAY
+      // HALF DAY
       else if (selectedStatus === "Half Day") {
         await commitDay(
           {
@@ -223,7 +273,9 @@ export function useAdminManageDay({
             minutesDelayed: 0,
             graceDeducted: 0,
           },
-          false,
+          "Half Day",
+          0,
+          0,
         );
 
         await setDoc(
@@ -244,7 +296,7 @@ export function useAdminManageDay({
           { merge: true },
         );
       }
-      // 4. LEAVE
+      // LEAVE
       else if (selectedStatus === "Leave") {
         const finalLeaveType =
           leaveSubType === "unpaid" ? "Unpaid Leave" : "Casual Leave";
@@ -259,7 +311,9 @@ export function useAdminManageDay({
             minutesDelayed: 0,
             graceDeducted: 0,
           },
-          false,
+          "On Leave",
+          0,
+          0,
         );
 
         await setDoc(
