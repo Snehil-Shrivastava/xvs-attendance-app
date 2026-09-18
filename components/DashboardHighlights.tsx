@@ -204,7 +204,6 @@ const DashboardHighlights = () => {
   useEffect(() => {
     if (!user) return;
 
-    // 1. Monthly grace summary
     const summaryDocRef = doc(
       db,
       "monthly_summaries",
@@ -230,7 +229,6 @@ const DashboardHighlights = () => {
       },
     );
 
-    // 2. All leaves for this user (util filters by year internally)
     const leavesQuery = query(
       collection(db, "leaves"),
       where("userId", "==", user.uid),
@@ -249,7 +247,6 @@ const DashboardHighlights = () => {
       },
     );
 
-    // 3. Holidays for current year (for skip logic inside the util)
     const holidaysQuery = query(
       collection(db, "holidays"),
       where("month", ">=", `${currentYear}-01`),
@@ -280,13 +277,13 @@ const DashboardHighlights = () => {
   const isLoading = authLoading || loadingSummary || loadingLeaves;
 
   // --- Grace minutes display ---
-  const rawGraceMinutes = monthlyData?.graceRemaining ?? 30;
+  // Never show negative time. Floor at 0.
+  const rawGraceMinutes = Math.max(0, monthlyData?.graceRemaining ?? 30);
   const graceMins = Math.floor(rawGraceMinutes);
   const graceSecs = Math.round((rawGraceMinutes - graceMins) * 60);
   const formattedMins = String(graceMins).padStart(2, "0");
   const formattedSecs = String(graceSecs).padStart(2, "0");
 
-  // --- Leave balance (year-remaining, matches LeaveStats) ---
   const formattedLeave = formatLeaveDays(summary.yearRemaining);
 
   return (
@@ -294,7 +291,7 @@ const DashboardHighlights = () => {
       <span className="text-[10px] opacity-50 font-normal">Highlights</span>
 
       <div className="flex items-stretch justify-between mt-3 text-center gap-3">
-        {/* CARD 1: Time Remaining (grace minutes) — unchanged */}
+        {/* CARD 1: Time Remaining (grace minutes) */}
         <div className="border border-[#E5DEC9] bg-transparent py-5 px-3 flex flex-col items-center justify-between text-center flex-1">
           <h4 className="font-calSans text-[12px] tracking-wide">
             Time Remaining
@@ -317,7 +314,7 @@ const DashboardHighlights = () => {
           )}
         </div>
 
-        {/* CARD 2: Leave Balance (year-remaining) */}
+        {/* CARD 2: Leave Balance */}
         <div className="border border-[#E5DEC9] bg-transparent py-5 px-5 flex flex-col items-center justify-between text-center">
           <h4 className="font-calSans text-[12px] tracking-wide">
             Leave Balance
