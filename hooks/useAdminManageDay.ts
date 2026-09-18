@@ -36,6 +36,8 @@ export interface UseAdminManageDayReturn {
   setCheckInTime: (t: string) => void;
   leaveSubType: LeaveSubType;
   setLeaveSubType: (t: LeaveSubType) => void;
+  isWorkFromHome: boolean;
+  setIsWorkFromHome: (v: boolean) => void;
   remarkText: string;
   setRemarkText: (t: string) => void;
   savingRemark: boolean;
@@ -60,6 +62,7 @@ export function useAdminManageDay({
   const [selectedStatus, setSelectedStatus] = useState<ManageStatus>("Present");
   const [checkInTime, setCheckInTime] = useState("09:00");
   const [leaveSubType, setLeaveSubType] = useState<LeaveSubType>("normal");
+  const [isWorkFromHome, setIsWorkFromHome] = useState(false);
   const [remarkText, setRemarkText] = useState("");
   const [savingRemark, setSavingRemark] = useState(false);
 
@@ -68,6 +71,7 @@ export function useAdminManageDay({
     setRemarkDate(dateStr);
     setRemarkText(record?.remark || "");
 
+    // Pre-populate status from existing data
     if (record?.status === "On Leave" || approvedLeavesMap[dateStr]) {
       setSelectedStatus("Leave");
       setLeaveSubType(
@@ -80,6 +84,11 @@ export function useAdminManageDay({
     } else {
       setSelectedStatus("Present");
     }
+
+    // Pre-populate WFH flag (accept legacy alias too)
+    setIsWorkFromHome(
+      record?.status === "WFH" || record?.status === "Work from Home",
+    );
 
     setCheckInTime(record?.checkIn ? record.checkIn.slice(0, 5) : "09:00");
     setIsOpen(true);
@@ -110,8 +119,7 @@ export function useAdminManageDay({
       const existingRecord = monthlyRecords[remarkDate];
       const wasPreviouslyLate = existingRecord?.status === "Late";
 
-      // Fetch the target user's shift config once (only needed for Present,
-      // but cheap enough to always read — one doc get per admin action).
+      // Fetch target user's shift config for Present classification.
       const userDoc = await getDoc(doc(db, "users", effectiveUid));
       const u = userDoc.data() || {};
       const shift: ShiftConfig = {
@@ -122,7 +130,7 @@ export function useAdminManageDay({
         ),
       };
 
-      // Generalized commit — runs all writes concurrently and reconciles
+      // Commit helper — runs all writes in parallel and reconciles
       // the `lateDays` counter in both directions.
       const commitDay = async (
         payload: Record<string, unknown>,
@@ -154,7 +162,6 @@ export function useAdminManageDay({
         await Promise.all(ops);
       };
 
-      // Fields common to every admin write.
       const baseFields = {
         userId: effectiveUid,
         date: remarkDate,
@@ -164,20 +171,34 @@ export function useAdminManageDay({
         leaveType: deleteField(),
       };
 
-      // 1. PRESENT — classify via shift + grace, same rules as the webhook.
+      // 1. PRESENT (on-site or WFH)
       if (selectedStatus === "Present") {
-        const computed = computeAttendanceFromCheckIn(checkInTime, shift);
+        if (isWorkFromHome) {
+          // WFH overrides late/grace classification.
+          await commitDay(
+            {
+              ...baseFields,
+              status: "WFH",
+              checkIn: `${checkInTime}:00`,
+              minutesDelayed: 0,
+              graceDeducted: 0,
+            },
+            false,
+          );
+        } else {
+          const computed = computeAttendanceFromCheckIn(checkInTime, shift);
 
-        await commitDay(
-          {
-            ...baseFields,
-            status: computed.status, // "On Time" | "Grace Used" | "Late"
-            checkIn: `${checkInTime}:00`,
-            minutesDelayed: computed.minutesDelayed,
-            graceDeducted: computed.graceDeducted,
-          },
-          computed.status === "Late",
-        );
+          await commitDay(
+            {
+              ...baseFields,
+              status: computed.status,
+              checkIn: `${checkInTime}:00`,
+              minutesDelayed: computed.minutesDelayed,
+              graceDeducted: computed.graceDeducted,
+            },
+            computed.status === "Late",
+          );
+        }
       }
       // 2. ABSENT
       else if (selectedStatus === "Absent") {
@@ -277,6 +298,8 @@ export function useAdminManageDay({
     setCheckInTime,
     leaveSubType,
     setLeaveSubType,
+    isWorkFromHome,
+    setIsWorkFromHome,
     remarkText,
     setRemarkText,
     savingRemark,

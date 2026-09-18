@@ -711,7 +711,7 @@ const AttendanceCalendarView = ({
     [currentDate],
   );
 
-  // ---- Status resolver (memoized so downstream memos stay stable) ----
+  // ---- Status resolver ----
   const detailsFor = useCallback(
     (day: CalendarDay): DayDetails =>
       getDayDetails(
@@ -782,7 +782,7 @@ const AttendanceCalendarView = ({
               }}
               className={`absolute z-20 border border-[#E5DEC9] p-1.5 flex flex-col justify-between cursor-pointer transition-all duration-150 shadow-md ${
                 overlayConfig.details.isNormal
-                  ? "bg-[#FAF6EC] text-[#231F20]"
+                  ? "bg-background text-[#231F20]"
                   : overlayConfig.details.styleClass
               }`}
             >
@@ -836,7 +836,7 @@ const AttendanceCalendarView = ({
 
               {overlayConfig.isBottom && (
                 <div
-                  className={`flex ${overlayConfig.isRight ? "justify-end" : "justify-start"}`}
+                  className={`flex ${overlayConfig.isBottom && overlayConfig.isRight ? "justify-end" : "justify-start"}`}
                 >
                   <span className="text-xs font-medium">
                     {overlayConfig.day.dayNumber}
@@ -921,19 +921,51 @@ const AttendanceCalendarView = ({
                 </div>
               </div>
 
-              {/* Check-in (Present only) */}
+              {/* Check-in + WFH toggle (Present only) */}
               {admin.selectedStatus === "Present" && (
-                <div className="flex flex-col gap-1.5 animate-in fade-in duration-150">
-                  <label className="text-[10px] text-[#8C827A]">
-                    Check-in Time
-                  </label>
-                  <input
-                    type="time"
-                    value={admin.checkInTime}
-                    onChange={(e) => admin.setCheckInTime(e.target.value)}
-                    required
-                    className="w-full bg-[#FBF3E3] border border-[#E5DEC9] px-3 py-2 text-xs text-[#231F20] focus:outline-none"
-                  />
+                <div className="flex flex-col gap-3 animate-in fade-in duration-150">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-[#8C827A]">
+                      Check-in Time
+                    </label>
+                    <input
+                      type="time"
+                      value={admin.checkInTime}
+                      onChange={(e) => admin.setCheckInTime(e.target.value)}
+                      required
+                      className="w-full bg-[#FBF3E3] border border-[#E5DEC9] px-3 py-2 text-xs text-[#231F20] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-[#8C827A]">
+                      Work Mode
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-medium">
+                      <button
+                        type="button"
+                        onClick={() => admin.setIsWorkFromHome(false)}
+                        className={`py-2 px-2 text-center rounded-xs border transition cursor-pointer ${
+                          !admin.isWorkFromHome
+                            ? "bg-brand-orange text-white border-brand-orange"
+                            : "bg-[#FBF3E3] border-[#E5DEC9] text-[#231F20]"
+                        }`}
+                      >
+                        On-Site
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => admin.setIsWorkFromHome(true)}
+                        className={`py-2 px-2 text-center rounded-xs border transition cursor-pointer ${
+                          admin.isWorkFromHome
+                            ? "bg-[#577A64] text-white border-[#577A64]"
+                            : "bg-[#FBF3E3] border-[#E5DEC9] text-[#231F20]"
+                        }`}
+                      >
+                        Work from Home
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 

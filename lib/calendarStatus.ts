@@ -6,6 +6,9 @@
 // Fix #7 semantics preserved:
 //  - Status is primary; overtime is a secondary indicator.
 //  - Exception: overtime-only days (no status set) show Overtime as primary.
+//
+// WFH fix: "WFH" is the canonical value written by admin. "Work from Home"
+// is kept as a legacy alias on the read path only.
 
 import type { CalendarDay } from "./calendarGrid";
 
@@ -17,7 +20,7 @@ export type AttendanceStatus =
   | "Absent"
   | "On Leave"
   | "WFH"
-  | "Work from Home"
+  | "Work from Home" // legacy alias — read-only
   | "Holiday";
 
 export interface DayRecord {
@@ -129,7 +132,19 @@ export function getDayDetails(
     };
   }
 
-  // 5. Status primary; overtime as secondary indicator
+  // 5. Absent — render as a normal day (no background color).
+  if (record.status === "Absent") {
+    return {
+      styleClass: "bg-transparent text-[#231F20]",
+      label: "Absent",
+      remark,
+      isNormal: true,
+      hasOvertime,
+      overtimeMinutes,
+    };
+  }
+
+  // 6. Status primary; overtime as secondary indicator
   let styleClass = "bg-brand-orange text-white font-medium";
   let label = "";
 
@@ -149,10 +164,6 @@ export function getDayDetails(
     case "On Leave":
       styleClass = "bg-[#4E7B80] text-white font-medium";
       label = record.leaveType || "Leave";
-      break;
-    case "Absent":
-      styleClass = "bg-[#7A7269] text-white font-medium";
-      label = "Absent";
       break;
     case "WFH":
     case "Work from Home":
