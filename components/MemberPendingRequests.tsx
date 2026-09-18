@@ -329,6 +329,7 @@ import {
   formatAppliedTime,
 } from "@/lib/requestFormat";
 import { buildRequestNotification } from "@/lib/requestNotifications";
+import { applyLateArrivalApproval } from "@/lib/lateArrival";
 
 interface PendingItem {
   id: string;
@@ -342,7 +343,7 @@ interface PendingItem {
 }
 
 export const MemberPendingRequests = ({ userId }: { userId: string }) => {
-  const { user, userData } = useAuth();
+  const { userData } = useAuth();
   const [requests, setRequests] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -356,6 +357,11 @@ export const MemberPendingRequests = ({ userId }: { userId: string }) => {
         },
         status,
       ),
+    onApproved: async (item) => {
+      if (item.collectionName === "late_arrivals") {
+        await applyLateArrivalApproval(item.id);
+      }
+    },
   });
 
   useEffect(() => {
@@ -371,7 +377,6 @@ export const MemberPendingRequests = ({ userId }: { userId: string }) => {
       setLoading(false);
     };
 
-    // 1. Leaves
     const qLeaves = query(
       collection(db, "leaves"),
       where("userId", "==", userId),
@@ -398,7 +403,6 @@ export const MemberPendingRequests = ({ userId }: { userId: string }) => {
       updateCombined();
     });
 
-    // 2. Late arrivals
     const qLate = query(
       collection(db, "late_arrivals"),
       where("userId", "==", userId),
@@ -422,7 +426,6 @@ export const MemberPendingRequests = ({ userId }: { userId: string }) => {
       updateCombined();
     });
 
-    // 3. Attendance corrections
     const qCorrections = query(
       collection(db, "attendance_corrections"),
       where("userId", "==", userId),

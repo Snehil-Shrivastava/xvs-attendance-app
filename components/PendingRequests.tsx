@@ -410,6 +410,7 @@ import {
   formatAppliedTime,
 } from "@/lib/requestFormat";
 import { buildRequestNotification } from "@/lib/requestNotifications";
+import { applyLateArrivalApproval } from "@/lib/lateArrival";
 
 interface PendingItem {
   id: string;
@@ -442,6 +443,11 @@ const PendingRequests = () => {
         },
         status,
       );
+    },
+    onApproved: async (item) => {
+      if (item.collectionName === "late_arrivals") {
+        await applyLateArrivalApproval(item.id);
+      }
     },
   });
 
@@ -589,7 +595,6 @@ const PendingRequests = () => {
                 key={item.id}
                 className="grid grid-cols-12 items-center py-2.5 first:pt-0 last:pb-0 gap-3 text-xs"
               >
-                {/* Column 1: Name & ID */}
                 <div className="col-span-2 flex flex-col">
                   <span
                     className="font-semibold text-[8px] text-[#231F20] tracking-wide"
@@ -602,7 +607,6 @@ const PendingRequests = () => {
                   </span>
                 </div>
 
-                {/* Column 2: Type & Detail */}
                 <div className="col-span-4 flex flex-col">
                   <span className="font-semibold text-[8px] text-[#231F20]">
                     {item.type}
@@ -617,7 +621,6 @@ const PendingRequests = () => {
                   )}
                 </div>
 
-                {/* Column 3: Applied At */}
                 <div className="col-span-4 flex flex-col">
                   <span className="font-normal text-[8px] text-[#231F20]">
                     Date & Time Applied
@@ -630,7 +633,6 @@ const PendingRequests = () => {
                   </span>
                 </div>
 
-                {/* Column 4: Action */}
                 <div className="col-span-2 flex justify-end">
                   {updatingId === item.id ? (
                     <div className="flex items-center justify-center w-24 py-1.5 border border-[#8C827A]/50 rounded-xs">

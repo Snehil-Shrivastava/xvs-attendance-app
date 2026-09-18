@@ -22,15 +22,19 @@ export interface ReviewableRequest {
 }
 
 interface UseRequestActionsOptions<T extends ReviewableRequest> {
-  /**
-   * Builds the push notification for a given request + final status.
-   * Only called for "approved" / "denied" — never "pending".
-   */
   buildNotification: (item: T, status: RequestStatus) => NotificationPayload;
+  /**
+   * Optional side effect fired after the request doc has been updated to
+   * "approved". Use this for cross-collection consistency (e.g. recomputing
+   * daily_attendance when a late arrival is approved).
+   * Errors are logged but do not block the notification.
+   */
+  onApproved?: (item: T) => Promise<void> | void;
 }
 
 export function useRequestActions<T extends ReviewableRequest>({
   buildNotification,
+  onApproved,
 }: UseRequestActionsOptions<T>) {
   const { user } = useAuth();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -47,12 +51,26 @@ export function useRequestActions<T extends ReviewableRequest>({
         reviewedAt: new Date().toISOString(),
       });
 
+      // Side effect on approval (e.g. recompute daily_attendance for late_arrivals)
+      if (newStatus === "approved" && onApproved) {
+        try {
+          await onApproved(item);
+        } catch (err) {
+          console.error("onApproved side-effect failed:", err);
+        }
+      }
+
+      // Push notification
       if (newStatus === "approved" || newStatus === "denied") {
-        const notification = buildNotification(item, newStatus);
-        await sendPushNotificationToUser({
-          targetUserId: item.userId,
-          ...notification,
-        });
+        try {
+          const notification = buildNotification(item, newStatus);
+          await sendPushNotificationToUser({
+            targetUserId: item.userId,
+            ...notification,
+          });
+        } catch (err) {
+          console.error("Notification failed:", err);
+        }
       }
     } catch (error) {
       console.error("Error updating request status:", error);
