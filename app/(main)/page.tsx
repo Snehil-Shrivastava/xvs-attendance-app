@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
@@ -11,10 +11,13 @@ import PendingRequests from "@/components/PendingRequests";
 import Link from "next/link";
 import BirthdayBanner from "@/components/BirthdayBanner";
 import EnableNotificationsButton from "@/components/EnableNotificationsButton";
+import AdminDailySummary from "@/components/AdminDailySummary";
 
 export default function DashboardPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+
+  const [showSummary, setShowSummary] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -36,6 +39,10 @@ export default function DashboardPage() {
     <div className="py-10 px-5 flex flex-col gap-6">
       <BirthdayBanner />
       <EnableNotificationsButton />
+
+      {showSummary && (
+        <AdminDailySummary onClose={() => setShowSummary(false)} />
+      )}
 
       {isAdmin && <PendingRequests />}
 

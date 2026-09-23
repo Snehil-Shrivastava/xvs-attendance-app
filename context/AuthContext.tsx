@@ -18,6 +18,9 @@ export interface UserProfile {
   leaves?: {
     annualQuota?: number;
   };
+  uiPrefs?: {
+    dailySummaryDismissedOn?: string;
+  };
 }
 
 interface AuthContextType {

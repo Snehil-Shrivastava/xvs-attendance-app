@@ -6,6 +6,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import TeamMemberCard from "./TeamMemberCard";
 
+import { useSearchParams } from "next/navigation";
+
 interface UserRaw {
   userId: string;
   name: string;
@@ -21,6 +23,8 @@ interface MemberRow extends UserRaw {
 }
 
 const TeamMemberList = () => {
+  const searchParams = useSearchParams();
+  const expandUid = searchParams.get("expand");
   const { user, userData } = useAuth();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,6 +206,7 @@ const TeamMemberList = () => {
             pendingRequests={m.pendingRequests}
             remainingLeaves={m.remainingLeaves}
             graceRemainingMinutes={m.graceRemaining}
+            defaultExpanded={expandUid === m.userId}
           />
         ))
       )}

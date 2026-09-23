@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import editIcon from "@/public/edit-icon.svg";
@@ -20,6 +20,7 @@ interface TeamMemberCardProps {
   pendingRequests: number;
   remainingLeaves: number;
   graceRemainingMinutes: number;
+  defaultExpanded?: boolean;
 }
 
 const TeamMemberCard = ({
@@ -30,11 +31,26 @@ const TeamMemberCard = ({
   pendingRequests,
   remainingLeaves,
   graceRemainingMinutes,
+  defaultExpanded = false,
 }: TeamMemberCardProps) => {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (defaultExpanded) {
+      setIsExpanded(true);
+      const t = setTimeout(() => {
+        cardRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [defaultExpanded]);
 
   // Month navigation for the embedded attendance view
   const currentMonthStr = useMemo(() => {
@@ -82,7 +98,11 @@ const TeamMemberCard = ({
 
   return (
     <>
-      <div className="border border-[#E5DEC9] bg-background p-2 transition-all duration-300 font-poppins text-black">
+      <div
+        ref={cardRef}
+        id={`member-${userId}`}
+        className="border border-[#E5DEC9] bg-background p-2 transition-all duration-300 font-poppins text-black"
+      >
         {/* ============ TOP ROW: IDENTITY & CONTROLS ============ */}
         <div
           className="flex items-start justify-between gap-4 cursor-pointer select-none"
