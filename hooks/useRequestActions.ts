@@ -36,7 +36,7 @@ export function useRequestActions<T extends ReviewableRequest>({
   buildNotification,
   onApproved,
 }: UseRequestActionsOptions<T>) {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const changeStatus = async (item: T, newStatus: string): Promise<void> => {
@@ -48,6 +48,7 @@ export function useRequestActions<T extends ReviewableRequest>({
       await updateDoc(docRef, {
         status: newStatus,
         reviewedBy: user?.uid,
+        reviewedByName: userData?.name || "Admin",
         reviewedAt: new Date().toISOString(),
       });
 

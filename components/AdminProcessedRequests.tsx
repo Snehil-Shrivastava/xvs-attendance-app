@@ -21,6 +21,7 @@ interface RequestItem {
   appliedAt: string; // "07/09/26 | 09:30am"
   appliedTs: number; // epoch ms — used for sorting only
   status: "approved" | "denied";
+  reviewedByName?: string;
 }
 
 type SortField = "date" | "name" | "type" | "status";
@@ -68,7 +69,7 @@ const formatAppliedTime = (createdAt: unknown): string => {
   const ampm = d.getHours() >= 12 ? "pm" : "am";
   const hh = String(d.getHours() % 12 || 12).padStart(2, "0");
   const min = String(d.getMinutes()).padStart(2, "0");
-  return `${mm}/${dd}/${yy} | ${hh}:${min}${ampm}`;
+  return `${dd}/${mm}/${yy} | ${hh}:${min}${ampm}`;
 };
 
 /** Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM" (same as RequestsHistory) */
@@ -160,6 +161,7 @@ const AdminProcessedRequests = () => {
             appliedAt: formatAppliedTime(data.createdAt),
             appliedTs: toEpoch(data.createdAt),
             status: data.status,
+            reviewedByName: data.reviewedByName,
           });
         });
         updateCombined();
@@ -183,6 +185,7 @@ const AdminProcessedRequests = () => {
             appliedAt: formatAppliedTime(data.createdAt),
             appliedTs: toEpoch(data.createdAt),
             status: data.status,
+            reviewedByName: data.reviewedByName,
           });
         });
         updateCombined();
@@ -206,6 +209,7 @@ const AdminProcessedRequests = () => {
             appliedAt: formatAppliedTime(data.createdAt),
             appliedTs: toEpoch(data.createdAt),
             status: data.status,
+            reviewedByName: data.reviewedByName,
           });
         });
         updateCombined();
@@ -323,7 +327,7 @@ const AdminProcessedRequests = () => {
                 </div>
 
                 {/* Column 4: Status Badge */}
-                <div className="col-span-4 flex justify-end">
+                {/* <div className="col-span-4 flex justify-end">
                   {item.status === "approved" ? (
                     <div className="bg-brand-orange text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
                       Approved
@@ -332,6 +336,27 @@ const AdminProcessedRequests = () => {
                     <div className="bg-[#7A5C52] text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
                       Rejected
                     </div>
+                  )}
+                </div> */}
+                {/* Column 4: Status Badge + reviewer */}
+                <div className="col-span-4 flex flex-col items-end gap-0.5">
+                  {item.status === "approved" ? (
+                    <div className="bg-brand-orange text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
+                      Approved
+                    </div>
+                  ) : (
+                    <div className="bg-[#7A5C52] text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
+                      Rejected
+                    </div>
+                  )}
+
+                  {item.reviewedByName && (
+                    <span
+                      className="text-[8px] text-[#8C827A] font-light truncate max-w-20"
+                      title={item.reviewedByName}
+                    >
+                      by {getFirstName(item.reviewedByName)}
+                    </span>
                   )}
                 </div>
               </div>

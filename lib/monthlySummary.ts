@@ -1,15 +1,4 @@
 // lib/monthlySummary.ts
-//
-// Recomputes the entire month's attendance classification and summary from
-// primary sources.
-//
-// KEY SEMANTIC: grace is a SHARED monthly pool, not a per-day allowance.
-// Days are processed chronologically. Each delayed check-in consumes from
-// the pool until it's exhausted; any delay beyond the pool is "Late".
-//
-// Because classification depends on order, this function is the single
-// source of truth for status/graceDeducted/minutesDelayed on every day.
-
 import {
   collection,
   doc,

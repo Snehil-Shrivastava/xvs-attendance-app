@@ -15,6 +15,7 @@ interface RequestItem {
   timeInfo?: string; // "10:30 AM" or "09:00 AM - 01:00 PM"
   status: "approved" | "denied" | "pending";
   createdAt?: unknown;
+  reviewedByName?: string;
 }
 
 type SortField = "type" | "date" | "status";
@@ -30,6 +31,11 @@ const RequestsHistory = () => {
   // Sorting states
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  const getFirstName = (fullName: string) => {
+    if (!fullName) return "Admin";
+    return fullName.trim().split(" ")[0] || "Admin";
+  };
 
   // Helper: Format "09:00" -> "09:00 AM" or "13:30" -> "01:30 PM"
   const formatTimeStr = (t?: string | null) => {
@@ -81,6 +87,7 @@ const RequestsHistory = () => {
           timeInfo: timeDetails,
           status: data.status || "pending",
           createdAt: data.createdAt,
+          reviewedByName: data.reviewedByName,
         });
       });
       setLeaves(items);
@@ -102,6 +109,7 @@ const RequestsHistory = () => {
           timeInfo: formatTimeStr(data.newArrivalTime || "10:00 AM"),
           status: data.status || "pending",
           createdAt: data.createdAt,
+          reviewedByName: data.reviewedByName,
         });
       });
       setLateRequests(items);
@@ -122,6 +130,7 @@ const RequestsHistory = () => {
           date: data.date || "",
           status: data.status || "pending",
           createdAt: data.createdAt,
+          reviewedByName: data.reviewedByName,
         });
       });
       setCorrections(items);
@@ -293,7 +302,7 @@ const RequestsHistory = () => {
                   </div>
 
                   {/* Column 3: Status Badge */}
-                  <div className="col-span-3 flex justify-end">
+                  {/* <div className="col-span-3 flex justify-end">
                     {isApproved ? (
                       <div className="bg-[#F28B31] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
                         <span>Approved</span>
@@ -306,6 +315,31 @@ const RequestsHistory = () => {
                       <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
                         <span>Pending</span>
                       </div>
+                    )}
+                  </div> */}
+                  {/* Column 3: Status Badge + reviewer */}
+                  <div className="col-span-3 flex flex-col items-end gap-0.5">
+                    {isApproved ? (
+                      <div className="bg-[#F28B31] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
+                        <span>Approved</span>
+                      </div>
+                    ) : isDenied ? (
+                      <div className="bg-[#D64545] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
+                        <span>Denied</span>
+                      </div>
+                    ) : (
+                      <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
+                        <span>Pending</span>
+                      </div>
+                    )}
+
+                    {item.reviewedByName && (
+                      <span
+                        className="text-[8px] text-[#8C827A] font-light truncate max-w-20"
+                        title={item.reviewedByName}
+                      >
+                        by {getFirstName(item.reviewedByName)}
+                      </span>
                     )}
                   </div>
                 </div>
