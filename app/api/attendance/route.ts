@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin-file";
 import { FieldValue } from "firebase-admin/firestore";
-import { parseTimeToMinutes } from "@/lib/attendanceStatus";
+import { parseTimeToSeconds } from "@/lib/attendanceStatus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +27,10 @@ function getISTDateParts(utcSeconds?: number) {
     dateStr: `${yyyy}-${mm}-${dd}`,
     monthStr: `${yyyy}-${mm}`,
     timeStr: `${hh}:${min}:${ss}`,
-    totalMinutes: istDate.getHours() * 60 + istDate.getMinutes(),
+    totalSeconds:
+      istDate.getHours() * 3600 +
+      istDate.getMinutes() * 60 +
+      istDate.getSeconds(),
   };
 }
 
@@ -99,17 +102,18 @@ export async function POST(req: NextRequest) {
   try {
     const userDoc = await adminDb.collection("users").doc(userId).get();
     let shiftStartTime = "09:00:00";
-    let monthlyGraceAllowed = 30;
+    let monthlyGraceAllowedMin = 30;
     if (userDoc.exists) {
       const u = userDoc.data() || {};
       if (u?.shift?.startTime) shiftStartTime = String(u.shift.startTime);
       if (u?.shift?.monthlyGraceAllowance != null) {
-        monthlyGraceAllowed = safeNumber(u.shift.monthlyGraceAllowance, 30);
+        monthlyGraceAllowedMin = safeNumber(u.shift.monthlyGraceAllowance, 30);
       }
     }
 
     // ---- Late-arrival approval override ----
     let effectiveShiftStart = shiftStartTime;
+    let hasApprovedOverride = false;
     try {
       const lateSnap = await adminDb
         .collection("late_arrivals")
@@ -122,10 +126,11 @@ export async function POST(req: NextRequest) {
       if (!lateSnap.empty) {
         const lr = lateSnap.docs[0].data();
         const approvedTime = String(lr.newArrivalTime || "");
-        const shiftMin = parseTimeToMinutes(shiftStartTime) ?? 9 * 60;
-        const approvedMin = parseTimeToMinutes(approvedTime) ?? shiftMin;
-        if (approvedMin > shiftMin) {
+        const shiftSec = parseTimeToSeconds(shiftStartTime) ?? 9 * 3600;
+        const approvedSec = parseTimeToSeconds(approvedTime) ?? shiftSec;
+        if (approvedSec > shiftSec) {
           effectiveShiftStart = approvedTime;
+          hasApprovedOverride = true;
         }
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,16 +147,19 @@ export async function POST(req: NextRequest) {
       .doc(`${monthStr}_${userId}`);
     const monthlyDoc = await monthlyRef.get();
 
-    let graceRemaining = monthlyGraceAllowed;
-    let graceUsed = 0;
-    let totalLateMins = 0;
+    let graceRemainingSec = monthlyGraceAllowedMin * 60;
+    let graceUsedSec = 0;
+    let totalLateSec = 0;
     let presentDays = 0;
     let lateDays = 0;
     if (monthlyDoc.exists) {
       const m = monthlyDoc.data() || {};
-      graceRemaining = safeNumber(m.graceRemaining, monthlyGraceAllowed);
-      graceUsed = safeNumber(m.graceUsed, 0);
-      totalLateMins = safeNumber(m.totalLateMinutes, 0);
+      graceRemainingSec = safeNumber(
+        m.graceRemainingSeconds,
+        graceRemainingSec,
+      );
+      graceUsedSec = safeNumber(m.graceUsedSeconds, 0);
+      totalLateSec = safeNumber(m.totalLateSeconds, 0);
       presentDays = safeNumber(m.presentDays, 0);
       lateDays = safeNumber(m.lateDays, 0);
     }
@@ -160,32 +168,34 @@ export async function POST(req: NextRequest) {
 
     // ---------------- FIRST PUNCH = CHECK-IN ----------------
     if (!dailyDoc.exists) {
-      const shiftMinutes = parseTimeToMinutes(effectiveShiftStart) ?? 9 * 60;
-      const delayMins = Math.max(0, ist.totalMinutes - shiftMinutes);
+      const shiftSec = parseTimeToSeconds(effectiveShiftStart) ?? 9 * 3600;
+      const delaySec = Math.max(0, ist.totalSeconds - shiftSec);
+      const gracePoolSec = monthlyGraceAllowedMin * 60;
 
-      let graceDeducted = 0;
-      let status = "On Time";
-      if (delayMins > 0) {
-        if (graceRemaining >= delayMins) {
-          // Fully within grace → still "On Time", but grace is consumed.
-          graceDeducted = delayMins;
-          graceRemaining -= delayMins;
-          graceUsed += delayMins;
-          status = "On Time";
-        } else if (graceRemaining > 0) {
-          graceDeducted = graceRemaining;
-          const lateMinutes = delayMins - graceRemaining;
-          graceUsed += graceRemaining;
-          graceRemaining = 0;
-          totalLateMins += lateMinutes;
-          lateDays += 1;
-          status = "Late";
-        } else {
-          totalLateMins += delayMins;
-          lateDays += 1;
-          status = "Late";
-        }
+      let graceDeductedSec = 0;
+      let status: "On Time" | "Late/Allowed" | "Late" = "On Time";
+
+      if (delaySec === 0) {
+        status = hasApprovedOverride ? "Late/Allowed" : "On Time";
+      } else if (graceRemainingSec >= delaySec) {
+        graceDeductedSec = delaySec;
+        graceRemainingSec -= delaySec;
+        graceUsedSec += delaySec;
+        status = "Late/Allowed";
+      } else if (graceRemainingSec > 0) {
+        graceDeductedSec = graceRemainingSec;
+        const lateSec = delaySec - graceRemainingSec;
+        graceUsedSec += graceRemainingSec;
+        graceRemainingSec = 0;
+        totalLateSec += lateSec;
+        lateDays += 1;
+        status = "Late";
+      } else {
+        totalLateSec += delaySec;
+        lateDays += 1;
+        status = "Late";
       }
+
       presentDays += 1;
 
       await dailyRef.set({
@@ -196,8 +206,8 @@ export async function POST(req: NextRequest) {
         checkIn: timeStr,
         checkOut: null,
         scheduledCheckIn: effectiveShiftStart,
-        minutesDelayed: delayMins,
-        graceDeducted,
+        delaySeconds: delaySec,
+        graceDeductedSeconds: graceDeductedSec,
         status,
         totalWorkingHours: 0.0,
         createdAt: nowIso,
@@ -209,10 +219,10 @@ export async function POST(req: NextRequest) {
           month: monthStr,
           userId,
           name: employeeName,
-          graceTotalAllowed: monthlyGraceAllowed,
-          graceUsed,
-          graceRemaining,
-          totalLateMinutes: totalLateMins,
+          graceTotalSeconds: gracePoolSec,
+          graceUsedSeconds: graceUsedSec,
+          graceRemainingSeconds: graceRemainingSec,
+          totalLateSeconds: totalLateSec,
           presentDays,
           lateDays,
           updatedAt: nowIso,
@@ -221,7 +231,7 @@ export async function POST(req: NextRequest) {
       );
 
       console.log(
-        `✅ CHECK-IN SAVED: ${userId} at ${timeStr} (${status}, effective start ${effectiveShiftStart})`,
+        `✅ CHECK-IN SAVED: ${userId} at ${timeStr} (${status}, delay ${delaySec}s, grace ${graceDeductedSec}s)`,
       );
     } else {
       // ---------------- SECOND PUNCH = CHECK-OUT ----------------
@@ -229,9 +239,9 @@ export async function POST(req: NextRequest) {
       const checkInStr = String(d.checkIn || timeStr);
       let currentStatus = String(d.status || "On Time");
 
-      const checkInMin = parseTimeToMinutes(checkInStr) ?? ist.totalMinutes;
-      const workedMinutes = Math.max(0, ist.totalMinutes - checkInMin);
-      const workingHours = Number((workedMinutes / 60).toFixed(2));
+      const checkInSec = parseTimeToSeconds(checkInStr) ?? ist.totalSeconds;
+      const workedSec = Math.max(0, ist.totalSeconds - checkInSec);
+      const workingHours = Number((workedSec / 3600).toFixed(2));
 
       if (workingHours < 4.5 && currentStatus !== "Late") {
         currentStatus = "Half Day";

@@ -5,7 +5,6 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import TeamMemberCard from "./TeamMemberCard";
-
 import { useSearchParams } from "next/navigation";
 
 interface UserRaw {
@@ -19,17 +18,16 @@ interface UserRaw {
 interface MemberRow extends UserRaw {
   pendingRequests: number;
   remainingLeaves: number;
-  graceRemaining: number;
+  graceRemainingSeconds: number; // ← renamed from graceRemaining
 }
 
 const TeamMemberList = () => {
+  const { user, userData } = useAuth();
   const searchParams = useSearchParams();
   const expandUid = searchParams.get("expand");
-  const { user, userData } = useAuth();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Current month string (e.g. "2026-09") — same as DashboardHighlights
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   useEffect(() => {
@@ -37,7 +35,6 @@ const TeamMemberList = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
-    // One raw store per listener, recombined on every update
     let usersRaw: UserRaw[] = [];
     let graceByUser = new Map<string, number>();
     let approvedDaysByUser = new Map<string, number>();
@@ -59,10 +56,9 @@ const TeamMemberList = () => {
           return {
             ...u,
             pendingRequests: pending,
-            // Same calc as DashboardHighlights: quota − approved days
             remainingLeaves: Math.max(0, u.annualQuota - usedDays),
-            // Fallback 30 mins if this month's summary doc doesn't exist yet
-            graceRemaining: graceByUser.get(u.userId) ?? 30,
+            // Default 30 minutes (in seconds) if no summary yet
+            graceRemainingSeconds: graceByUser.get(u.userId) ?? 1800,
           };
         });
       setMembers(rows);
@@ -86,7 +82,7 @@ const TeamMemberList = () => {
       recombine();
     });
 
-    // 2. This month's grace bank for everyone (Remaining Time)
+    // 2. This month's grace bank — now in seconds
     const unsubSummaries = onSnapshot(
       query(
         collection(db, "monthly_summaries"),
@@ -97,13 +93,20 @@ const TeamMemberList = () => {
         snap.forEach((docSnap) => {
           const data = docSnap.data();
           const uid = data.userId || docSnap.id.split("_")[1];
-          graceByUser.set(uid, Number(data.graceRemaining ?? 30));
+          // Fallback to 1800 seconds if field missing on legacy docs
+          const secs =
+            typeof data.graceRemainingSeconds === "number"
+              ? data.graceRemainingSeconds
+              : typeof data.graceRemaining === "number"
+                ? Math.round(data.graceRemaining * 60) // legacy float → seconds
+                : 1800;
+          graceByUser.set(uid, secs);
         });
         recombine();
       },
     );
 
-    // 3. Approved leaves → used days per member (Remaining Leaves)
+    // 3. Approved leaves → used days per member
     const unsubApproved = onSnapshot(
       query(collection(db, "leaves"), where("status", "==", "approved")),
       (snap) => {
@@ -120,7 +123,7 @@ const TeamMemberList = () => {
       },
     );
 
-    // 4–6. Pending requests per member, across all three collections
+    // 4–6. Pending counts
     const unsubPendingLeaves = onSnapshot(
       query(collection(db, "leaves"), where("status", "==", "pending")),
       (snap) => {
@@ -205,7 +208,7 @@ const TeamMemberList = () => {
             photoUrl={m.photoUrl}
             pendingRequests={m.pendingRequests}
             remainingLeaves={m.remainingLeaves}
-            graceRemainingMinutes={m.graceRemaining}
+            graceRemainingSeconds={m.graceRemainingSeconds}
             defaultExpanded={expandUid === m.userId}
           />
         ))

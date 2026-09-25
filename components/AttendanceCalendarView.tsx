@@ -257,6 +257,7 @@ const AttendanceCalendarView = ({
                     </label>
                     <input
                       type="time"
+                      step="1"
                       value={admin.checkInTime}
                       onChange={(e) => admin.setCheckInTime(e.target.value)}
                       required

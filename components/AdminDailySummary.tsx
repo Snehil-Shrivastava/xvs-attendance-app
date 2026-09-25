@@ -23,10 +23,16 @@ interface DailyRecord {
   status?: string;
   checkIn?: string | null;
   checkOut?: string | null;
-  graceDeducted?: number;
-  minutesDelayed?: number;
   leaveType?: string;
   remark?: string;
+  // NEW
+  delaySeconds?: number;
+  graceDeductedSeconds?: number;
+  // Legacy (read-only fallback for pre-migration docs)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graceDeducted?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  minutesDelayed?: any;
 }
 
 type CategoryKey = "present" | "late" | "lateAllowed" | "leave" | "halfDay";
@@ -200,15 +206,23 @@ const AdminDailySummary = ({
 
     for (const rec of records) {
       const status = String(rec.status || "");
-      const grace = Number(rec.graceDeducted || 0);
+      // Prefer new field; fall back to legacy so pre-migration docs still classify
+      const grace = Number(rec.graceDeductedSeconds ?? rec.graceDeducted ?? 0);
 
-      if (status === "Late") cats.late.push(rec);
-      else if (status === "Grace Used") cats.lateAllowed.push(rec);
-      else if (status === "On Time") {
+      if (status === "Late") {
+        cats.late.push(rec);
+      } else if (status === "Late/Allowed" || status === "Grace Used") {
+        // New canonical value + legacy alias
+        cats.lateAllowed.push(rec);
+      } else if (status === "On Time") {
+        // Legacy docs only: pre-migration "On Time" could carry grace
         if (grace > 0) cats.lateAllowed.push(rec);
         else cats.present.push(rec);
-      } else if (status === "On Leave") cats.leave.push(rec);
-      else if (status === "Half Day") cats.halfDay.push(rec);
+      } else if (status === "On Leave") {
+        cats.leave.push(rec);
+      } else if (status === "Half Day") {
+        cats.halfDay.push(rec);
+      }
     }
 
     for (const key of Object.keys(cats) as CategoryKey[]) {

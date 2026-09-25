@@ -19,7 +19,7 @@ interface TeamMemberCardProps {
   photoUrl?: string;
   pendingRequests: number;
   remainingLeaves: number;
-  graceRemainingMinutes: number;
+  graceRemainingSeconds: number; // ← renamed
   defaultExpanded?: boolean;
 }
 
@@ -30,11 +30,11 @@ const TeamMemberCard = ({
   photoUrl,
   pendingRequests,
   remainingLeaves,
-  graceRemainingMinutes,
+  graceRemainingSeconds,
   defaultExpanded = false,
 }: TeamMemberCardProps) => {
   const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isOvertimeOpen, setIsOvertimeOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const cardRef = useRef<HTMLDivElement>(null);
@@ -52,7 +52,6 @@ const TeamMemberCard = ({
     }
   }, [defaultExpanded]);
 
-  // Month navigation for the embedded attendance view
   const currentMonthStr = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, "0");
@@ -80,13 +79,10 @@ const TeamMemberCard = ({
     );
   };
 
-  // Math for grace time
-  let graceMins = Math.floor(graceRemainingMinutes);
-  let graceSecs = Math.round((graceRemainingMinutes - graceMins) * 60);
-  if (graceSecs === 60) {
-    graceMins += 1;
-    graceSecs = 0;
-  }
+  // Integer arithmetic — no floats, no rounding edge cases
+  const safeSecs = Math.max(0, Math.floor(graceRemainingSeconds));
+  const graceMins = Math.floor(safeSecs / 60);
+  const graceSecs = safeSecs % 60;
   const formattedMins = String(graceMins).padStart(2, "0");
   const formattedSecs = String(graceSecs).padStart(2, "0");
 
@@ -103,12 +99,11 @@ const TeamMemberCard = ({
         id={`member-${userId}`}
         className="border border-[#E5DEC9] bg-background p-2 transition-all duration-300 font-poppins text-black"
       >
-        {/* ============ TOP ROW: IDENTITY & CONTROLS ============ */}
+        {/* TOP ROW: IDENTITY & CONTROLS */}
         <div
           className="flex items-start justify-between gap-4 cursor-pointer select-none"
           onClick={() => setIsExpanded((prev) => !prev)}
         >
-          {/* Identity */}
           <div className="flex items-center gap-3">
             <Image
               src={photoUrl || "/placeholder-avatar.png"}
@@ -133,12 +128,10 @@ const TeamMemberCard = ({
             </div>
           </div>
 
-          {/* Action buttons (Collapsed mode) OR Expand/Collapse Toggle */}
           <div
             className="flex flex-col items-end justify-between h-full gap-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Edit Button */}
             <button
               type="button"
               onClick={() => router.push(`/team/${userId}`)}
@@ -148,7 +141,6 @@ const TeamMemberCard = ({
               <Image src={editIcon} alt="Edit" className="w-3.5 h-3.5" />
             </button>
 
-            {/* Add Overtime Button */}
             {!isExpanded && (
               <button
                 type="button"
@@ -165,7 +157,7 @@ const TeamMemberCard = ({
           </div>
         </div>
 
-        {/* ============ COLLAPSED STAT TILES ============ */}
+        {/* COLLAPSED STAT TILES */}
         {!isExpanded && (
           <div className="flex gap-2 mt-5 text-white">
             <div className="bg-brand-orange px-2.5 pt-0 pb-2 flex-1">
@@ -188,19 +180,17 @@ const TeamMemberCard = ({
                 <span className="font-calSans text-xl leading-none tracking-wider">
                   {formattedMins}:{formattedSecs}
                 </span>
-                <span className="text-[8px] font-light">secs</span>
+                <span className="text-[8px] font-light">min</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* ============ UNFOLDED VERTICAL DETAILS ============ */}
+        {/* UNFOLDED */}
         {isExpanded && (
           <div className="flex flex-col gap-6 mt-6 pt-2 animate-in fade-in slide-in-from-top-3 duration-200">
-            {/* 1. Pending Requests Section */}
             <MemberPendingRequests userId={userId} />
 
-            {/* 2. Month Navigation Header */}
             <div className="flex items-center justify-between mt-1">
               <h3 className="font-calSans text-xl tracking-wide select-none">
                 {formattedMonthTitle}
@@ -225,29 +215,24 @@ const TeamMemberCard = ({
               </div>
             </div>
 
-            {/* 3. Monthly Attendance Stats */}
             <AttendanceStats
               currentMonth={currentMonthStr}
               targetUserId={userId}
             />
 
-            {/* 4. Calendar Grid & Demarcations */}
             <AttendanceCalendarView
               currentDate={currentDate}
               currentMonthStr={currentMonthStr}
               targetUserId={userId}
             />
 
-            {/* 5. Attendance History Logs */}
             <AttendanceHistory targetUserId={userId} />
 
-            {/* 6. Employee Personal Information Cards */}
             <MemberPersonalDetails userId={userId} />
           </div>
         )}
       </div>
 
-      {/* Add Overtime Modal */}
       <AddOvertimeModal
         open={isOvertimeOpen}
         onClose={() => setIsOvertimeOpen(false)}

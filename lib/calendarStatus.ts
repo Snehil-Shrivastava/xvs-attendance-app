@@ -14,6 +14,7 @@ import type { CalendarDay } from "./calendarGrid";
 
 export type AttendanceStatus =
   | "On Time"
+  | "Late/Allowed"
   | "Grace Used"
   | "Late"
   | "Half Day"
@@ -30,6 +31,14 @@ export interface DayRecord {
   checkIn?: string;
   leaveType?: string;
   remark?: string;
+  // NEW integer-second fields
+  delaySeconds?: number;
+  graceDeductedSeconds?: number;
+  // Legacy float fields (kept optional for tolerant reads during migration)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  minutesDelayed?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graceDeducted?: any;
 }
 
 export interface DayDetails {
@@ -152,6 +161,10 @@ export function getDayDetails(
     case "Late":
       styleClass = "bg-[#DE4949] text-white font-medium";
       label = "Late";
+      break;
+    case "Late/Allowed": // NEW
+      styleClass = "bg-[#91C95A] text-white font-medium";
+      label = "Late/Allowed";
       break;
     case "Grace Used":
       styleClass = "bg-[#91C95A] text-white font-medium";

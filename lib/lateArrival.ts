@@ -7,7 +7,7 @@
 
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { parseTimeToMinutes, type ShiftConfig } from "./attendanceStatus";
+import { parseTimeToSeconds, type ShiftConfig } from "./attendanceStatus";
 import { recomputeMonthlyAttendance } from "./monthlySummary";
 
 export interface LateArrivalApprovalResult {
@@ -50,7 +50,6 @@ export async function applyLateArrivalApproval(
   };
 
   // Mark the doc so the calendar knows this day has an approved override.
-  // (Recompute will pick it up by reading the late_arrivals collection.)
   await updateDoc(dailyRef, {
     approvedLateArrivalId: requestDocId,
     updatedAt: new Date().toISOString(),
@@ -60,11 +59,11 @@ export async function applyLateArrivalApproval(
   await recomputeMonthlyAttendance(userId, month, shift, String(u.name || ""));
 
   // For the caller's notification logic
-  const shiftMin = parseTimeToMinutes(shift.startTime) ?? 9 * 60;
-  const approvedMin = parseTimeToMinutes(approvedArrival) ?? shiftMin;
+  const shiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600;
+  const approvedSec = parseTimeToSeconds(approvedArrival) ?? shiftSec;
   return {
     ok: true,
     oldStatus,
-    newStatus: approvedMin > shiftMin ? "override-applied" : oldStatus,
+    newStatus: approvedSec > shiftSec ? "override-applied" : oldStatus,
   };
 }
