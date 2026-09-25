@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const userDoc = await adminDb.collection("users").doc(userId).get();
-    let shiftStartTime = "09:00:00";
+    let shiftStartTime = "09:01:00";
     let monthlyGraceAllowedMin = 30;
     if (userDoc.exists) {
       const u = userDoc.data() || {};
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       if (!lateSnap.empty) {
         const lr = lateSnap.docs[0].data();
         const approvedTime = String(lr.newArrivalTime || "");
-        const shiftSec = parseTimeToSeconds(shiftStartTime) ?? 9 * 3600;
+        const shiftSec = parseTimeToSeconds(shiftStartTime) ?? 9 * 3600 + 60;
         const approvedSec = parseTimeToSeconds(approvedTime) ?? shiftSec;
         if (approvedSec > shiftSec) {
           effectiveShiftStart = approvedTime;
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
 
     // ---------------- FIRST PUNCH = CHECK-IN ----------------
     if (!dailyDoc.exists) {
-      const shiftSec = parseTimeToSeconds(effectiveShiftStart) ?? 9 * 3600;
+      const shiftSec = parseTimeToSeconds(effectiveShiftStart) ?? 9 * 3600 + 60;
       const delaySec = Math.max(0, ist.totalSeconds - shiftSec);
       const gracePoolSec = monthlyGraceAllowedMin * 60;
 
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
         month: monthStr,
         checkIn: timeStr,
         checkOut: null,
-        scheduledCheckIn: effectiveShiftStart,
+        // scheduledCheckIn: effectiveShiftStart,
         delaySeconds: delaySec,
         graceDeductedSeconds: graceDeductedSec,
         status,

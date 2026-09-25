@@ -171,7 +171,7 @@ export async function createTeamMember(
           mustChangePassword: input.mustChangePassword,
           isActive: true,
           shift: {
-            startTime: `${input.shiftStart || "09:00"}:00`,
+            startTime: `${input.shiftStart || "09:01"}:00`,
             endTime: `${input.shiftEnd || "17:00"}:00`,
             monthlyGraceAllowance: grace,
           },

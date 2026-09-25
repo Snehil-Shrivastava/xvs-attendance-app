@@ -125,7 +125,7 @@ export async function recomputeMonthlyAttendance(
     }
 
     const override = overrideByDate[dateKey];
-    const normalShiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600;
+    const normalShiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600 + 60;
     const overrideSec = override ? (parseTimeToSeconds(override) ?? 0) : 0;
     const hasApprovedOverride = overrideSec > normalShiftSec;
     const effectiveShiftStart = hasApprovedOverride

@@ -52,7 +52,7 @@ export function computeAttendanceFromCheckIn(
   hasApprovedLateArrival = false,
   graceRemainingSeconds?: number, // pass current pool to classify correctly
 ): ComputedAttendance {
-  const shiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600;
+  const shiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600 + 60;
   const checkInSec = parseTimeToSeconds(checkInTime) ?? 0;
   const poolSec = graceRemainingSeconds ?? shift.monthlyGraceAllowance * 60;
 

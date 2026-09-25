@@ -301,22 +301,6 @@ const RequestsHistory = () => {
                     )}
                   </div>
 
-                  {/* Column 3: Status Badge */}
-                  {/* <div className="col-span-3 flex justify-end">
-                    {isApproved ? (
-                      <div className="bg-[#F28B31] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
-                        <span>Approved</span>
-                      </div>
-                    ) : isDenied ? (
-                      <div className="bg-[#D64545] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
-                        <span>Denied</span>
-                      </div>
-                    ) : (
-                      <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 flex items-center justify-center gap-1.5 w-15">
-                        <span>Pending</span>
-                      </div>
-                    )}
-                  </div> */}
                   {/* Column 3: Status Badge + reviewer */}
                   <div className="col-span-3 flex flex-col items-end gap-0.5">
                     {isApproved ? (

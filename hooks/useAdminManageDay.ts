@@ -46,7 +46,7 @@ export interface UseAdminManageDayReturn {
 }
 
 const DEFAULT_SHIFT: ShiftConfig = {
-  startTime: "09:00:00",
+  startTime: "09:01:00",
   monthlyGraceAllowance: 30,
 };
 
@@ -59,7 +59,7 @@ export function useAdminManageDay({
   const [isOpen, setIsOpen] = useState(false);
   const [remarkDate, setRemarkDate] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<ManageStatus>("Present");
-  const [checkInTime, setCheckInTime] = useState("09:00:00");
+  const [checkInTime, setCheckInTime] = useState("09:01:00");
   const [leaveSubType, setLeaveSubType] = useState<LeaveSubType>("normal");
   const [isWorkFromHome, setIsWorkFromHome] = useState(false);
   const [remarkText, setRemarkText] = useState("");
@@ -87,7 +87,7 @@ export function useAdminManageDay({
       record?.status === "WFH" || record?.status === "Work from Home",
     );
 
-    setCheckInTime(record?.checkIn ? record.checkIn.slice(0, 8) : "09:00:00");
+    setCheckInTime(record?.checkIn ? record.checkIn.slice(0, 8) : "09:01:00");
     setIsOpen(true);
   };
 

@@ -32,7 +32,7 @@ const defaultForm: FormState = {
   role: "employee",
   annualQuota: "24",
   grace: "30",
-  shiftStart: "09:00",
+  shiftStart: "09:01",
   shiftEnd: "17:00",
 };
 

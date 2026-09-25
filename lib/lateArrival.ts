@@ -43,7 +43,7 @@ export async function applyLateArrivalApproval(
   const userSnap = await getDoc(doc(db, "users", userId));
   const u = userSnap.data() || {};
   const shift: ShiftConfig = {
-    startTime: String(u?.shift?.startTime || "09:00:00"),
+    startTime: String(u?.shift?.startTime || "09:01:00"),
     monthlyGraceAllowance: Number(
       u?.shift?.monthlyGraceAllowance ?? DEFAULT_GRACE,
     ),
@@ -59,7 +59,7 @@ export async function applyLateArrivalApproval(
   await recomputeMonthlyAttendance(userId, month, shift, String(u.name || ""));
 
   // For the caller's notification logic
-  const shiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600;
+  const shiftSec = parseTimeToSeconds(shift.startTime) ?? 9 * 3600 + 60;
   const approvedSec = parseTimeToSeconds(approvedArrival) ?? shiftSec;
   return {
     ok: true,

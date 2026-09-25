@@ -326,18 +326,6 @@ const AdminProcessedRequests = () => {
                   </span>
                 </div>
 
-                {/* Column 4: Status Badge */}
-                {/* <div className="col-span-4 flex justify-end">
-                  {item.status === "approved" ? (
-                    <div className="bg-brand-orange text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
-                      Approved
-                    </div>
-                  ) : (
-                    <div className="bg-[#7A5C52] text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
-                      Rejected
-                    </div>
-                  )}
-                </div> */}
                 {/* Column 4: Status Badge + reviewer */}
                 <div className="col-span-4 flex flex-col items-end gap-0.5">
                   {item.status === "approved" ? (
