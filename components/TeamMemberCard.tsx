@@ -226,7 +226,10 @@ const TeamMemberCard = ({
               targetUserId={userId}
             />
 
-            <AttendanceHistory targetUserId={userId} />
+            <AttendanceHistory
+              targetUserId={userId}
+              currentMonth={currentMonthStr}
+            />
 
             <MemberPersonalDetails userId={userId} />
           </div>

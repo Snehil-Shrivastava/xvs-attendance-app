@@ -74,7 +74,7 @@ const AttendancePage = () => {
         />
 
         {/* 3. History logs */}
-        <AttendanceHistory />
+        <AttendanceHistory currentMonth={currentMonthStr} />
 
         {/* 4. Open Modal Button */}
         <button
