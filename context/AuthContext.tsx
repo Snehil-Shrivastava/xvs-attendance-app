@@ -17,6 +17,7 @@ export interface UserProfile {
   isActive?: boolean;
   leaves?: {
     annualQuota?: number;
+    openingUsedDays?: Record<string, number>;
   };
   uiPrefs?: {
     dailySummaryDismissedOn?: string;

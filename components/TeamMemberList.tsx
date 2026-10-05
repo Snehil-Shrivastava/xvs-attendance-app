@@ -6,6 +6,11 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import TeamMemberCard from "./TeamMemberCard";
 import { useSearchParams } from "next/navigation";
+import {
+  computeLeaveSummary,
+  buildHolidayDateSet,
+  type LeaveDoc,
+} from "@/lib/leaveCalc";
 
 interface UserRaw {
   userId: string;
@@ -13,12 +18,13 @@ interface UserRaw {
   department: string;
   photoUrl?: string;
   annualQuota: number;
+  openingUsedDays?: Record<string, number>; // NEW
 }
 
 interface MemberRow extends UserRaw {
   pendingRequests: number;
   remainingLeaves: number;
-  graceRemainingSeconds: number; // ← renamed from graceRemaining
+  graceRemainingSeconds: number;
 }
 
 const TeamMemberList = () => {
@@ -29,6 +35,7 @@ const TeamMemberList = () => {
   const [loading, setLoading] = useState(true);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentYearStr = currentMonth.slice(0, 4);
 
   useEffect(() => {
     if (!user || userData?.role !== "admin") return;
@@ -37,17 +44,26 @@ const TeamMemberList = () => {
 
     let usersRaw: UserRaw[] = [];
     let graceByUser = new Map<string, number>();
-    let approvedDaysByUser = new Map<string, number>();
+    let leavesByUser = new Map<string, LeaveDoc[]>(); // NEW: raw docs
+    let holidaysRaw: Array<{ date?: string }> = []; // NEW
     let pendingLeavesByUser = new Map<string, number>();
     let pendingLateByUser = new Map<string, number>();
     let pendingCorrByUser = new Map<string, number>();
 
     const recombine = () => {
+      const holidaySet = buildHolidayDateSet(holidaysRaw);
+
       const rows: MemberRow[] = usersRaw
         .slice()
         .sort((a, b) => Number(a.userId) - Number(b.userId))
         .map((u) => {
-          const usedDays = approvedDaysByUser.get(u.userId) || 0;
+          const userLeaves = leavesByUser.get(u.userId) || [];
+          const summary = computeLeaveSummary(userLeaves, {
+            annualQuota: u.annualQuota,
+            openingUsedDays: u.openingUsedDays,
+            holidayDates: holidaySet,
+          });
+
           const pending =
             (pendingLeavesByUser.get(u.userId) || 0) +
             (pendingLateByUser.get(u.userId) || 0) +
@@ -56,8 +72,7 @@ const TeamMemberList = () => {
           return {
             ...u,
             pendingRequests: pending,
-            remainingLeaves: Math.max(0, u.annualQuota - usedDays),
-            // Default 30 minutes (in seconds) if no summary yet
+            remainingLeaves: summary.yearRemaining, // now util-derived
             graceRemainingSeconds: graceByUser.get(u.userId) ?? 1800,
           };
         });
@@ -77,12 +92,13 @@ const TeamMemberList = () => {
           department: data.department || "Department",
           photoUrl: data.photoUrl,
           annualQuota: Number(data.leaves?.annualQuota ?? 24),
+          openingUsedDays: data.leaves?.openingUsedDays, // NEW
         });
       });
       recombine();
     });
 
-    // 2. This month's grace bank — now in seconds
+    // 2. This month's grace bank
     const unsubSummaries = onSnapshot(
       query(
         collection(db, "monthly_summaries"),
@@ -93,12 +109,11 @@ const TeamMemberList = () => {
         snap.forEach((docSnap) => {
           const data = docSnap.data();
           const uid = data.userId || docSnap.id.split("_")[1];
-          // Fallback to 1800 seconds if field missing on legacy docs
           const secs =
             typeof data.graceRemainingSeconds === "number"
               ? data.graceRemainingSeconds
               : typeof data.graceRemaining === "number"
-                ? Math.round(data.graceRemaining * 60) // legacy float → seconds
+                ? Math.round(data.graceRemaining * 60)
                 : 1800;
           graceByUser.set(uid, secs);
         });
@@ -106,24 +121,40 @@ const TeamMemberList = () => {
       },
     );
 
-    // 3. Approved leaves → used days per member
+    // 3. All approved leaves — grouped by user (util does the day math)
     const unsubApproved = onSnapshot(
       query(collection(db, "leaves"), where("status", "==", "approved")),
       (snap) => {
-        approvedDaysByUser = new Map();
+        const next = new Map<string, LeaveDoc[]>();
         snap.forEach((docSnap) => {
           const data = docSnap.data();
-          const uid = data.userId || "";
-          approvedDaysByUser.set(
-            uid,
-            (approvedDaysByUser.get(uid) || 0) + Number(data.totalDays || 0),
-          );
+          const uid = String(data.userId || "");
+          if (!uid) return;
+          const arr = next.get(uid) || [];
+          arr.push({ id: docSnap.id, ...(data as LeaveDoc) });
+          next.set(uid, arr);
         });
+        leavesByUser = next;
         recombine();
       },
     );
 
-    // 4–6. Pending counts
+    // 4. Holidays for the current year (needed by computeLeaveSummary)
+    const unsubHolidays = onSnapshot(
+      query(
+        collection(db, "holidays"),
+        where("month", ">=", `${currentYearStr}-01`),
+        where("month", "<=", `${currentYearStr}-12`),
+      ),
+      (snap) => {
+        const arr: Array<{ date?: string }> = [];
+        snap.forEach((d) => arr.push(d.data() as { date?: string }));
+        holidaysRaw = arr;
+        recombine();
+      },
+    );
+
+    // 5–7. Pending counts
     const unsubPendingLeaves = onSnapshot(
       query(collection(db, "leaves"), where("status", "==", "pending")),
       (snap) => {
@@ -167,11 +198,12 @@ const TeamMemberList = () => {
       unsubUsers();
       unsubSummaries();
       unsubApproved();
+      unsubHolidays();
       unsubPendingLeaves();
       unsubPendingLate();
       unsubPendingCorr();
     };
-  }, [user, userData, currentMonth]);
+  }, [user, userData, currentMonth, currentYearStr]);
 
   if (userData?.role !== "admin") return null;
 

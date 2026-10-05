@@ -29,6 +29,7 @@ const DashboardHighlights = () => {
   const currentYear = currentMonth.slice(0, 4);
 
   const annualQuota = userData?.leaves?.annualQuota ?? 24;
+  const openingUsedDays = userData?.leaves?.openingUsedDays; // NEW
 
   useEffect(() => {
     if (!user) return;
@@ -45,7 +46,7 @@ const DashboardHighlights = () => {
           setMonthlyData(snap.data() as MonthlySummary);
         } else {
           setMonthlyData({
-            graceRemainingSeconds: 1800, // 30 min
+            graceRemainingSeconds: 1800,
             graceTotalSeconds: 1800,
             graceUsedSeconds: 0,
           });
@@ -98,15 +99,14 @@ const DashboardHighlights = () => {
     () =>
       computeLeaveSummary(leaves, {
         annualQuota,
+        openingUsedDays, // NEW
         holidayDates: buildHolidayDateSet(holidays),
       }),
-    [leaves, holidays, annualQuota],
+    [leaves, holidays, annualQuota, openingUsedDays],
   );
 
   const isLoading = authLoading || loadingSummary || loadingLeaves;
 
-  // --- Grace minutes display ---
-  // Never show negative time. Floor at 0.
   const rawGraceSeconds = Math.max(
     0,
     monthlyData?.graceRemainingSeconds ?? 1800,
@@ -123,7 +123,6 @@ const DashboardHighlights = () => {
       <span className="text-[10px] opacity-50 font-normal">Highlights</span>
 
       <div className="flex items-stretch justify-between mt-3 text-center gap-3">
-        {/* CARD 1: Time Remaining (grace minutes) */}
         <div className="border border-[#E5DEC9] bg-transparent py-5 px-3 flex flex-col items-center justify-between text-center flex-1">
           <h4 className="font-calSans text-[12px] tracking-wide">
             Time Remaining
@@ -146,7 +145,6 @@ const DashboardHighlights = () => {
           )}
         </div>
 
-        {/* CARD 2: Leave Balance */}
         <div className="border border-[#E5DEC9] bg-transparent py-5 px-5 flex flex-col items-center justify-between text-center">
           <h4 className="font-calSans text-[12px] tracking-wide">
             Leave Balance
