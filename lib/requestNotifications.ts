@@ -8,7 +8,11 @@ export interface NotificationPayload {
 }
 
 export interface BuildNotificationInput {
-  collectionName: "leaves" | "late_arrivals" | "attendance_corrections";
+  collectionName:
+    | "leaves"
+    | "late_arrivals"
+    | "attendance_corrections"
+    | "leave_cancellations";
   type: string; // "Casual Leave" | "Late Request" | "Attendance Correction" | ...
   detail: string; // fully-formatted summary e.g. "11 Aug 2026 (10:00 AM)"
 }
@@ -33,6 +37,14 @@ export function buildRequestNotification(
       title: `Late Arrival Request ${actionText}`,
       body: `Your late arrival request (${payload.detail}) has been ${actionLower}.`,
       url: "/attendance",
+    };
+  }
+
+  if (payload.collectionName === "leave_cancellations") {
+    return {
+      title: `Leave Cancellation ${actionText}`,
+      body: `Your cancellation request for ${payload.detail} has been ${actionLower}.`,
+      url: "/requests",
     };
   }
 

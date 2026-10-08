@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error("❌ raw save failed:", e?.message);
+    return new NextResponse(`RAW SAVE FAILED: ${e?.message}`, { status: 500 });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -271,6 +272,7 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error("❌ ATTENDANCE LOGIC ERROR:", e?.message || e);
+    return new NextResponse(`ERROR: ${e?.message || e}`, { status: 500 });
   }
 
   return plain("OK");

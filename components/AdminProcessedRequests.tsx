@@ -20,7 +20,7 @@ interface RequestItem {
   detail: string; // "Arriving at: 10:30 AM" or date range
   appliedAt: string; // "07/09/26 | 09:30am"
   appliedTs: number; // epoch ms — used for sorting only
-  status: "approved" | "denied";
+  status: "approved" | "denied" | "cancelled";
   reviewedByName?: string;
 }
 
@@ -130,7 +130,11 @@ const AdminProcessedRequests = () => {
     };
 
     // ✅ ONLY resolved requests — "pending" is never fetched here
-    const resolvedOnly = where("status", "in", ["approved", "denied"]);
+    const resolvedOnly = where("status", "in", [
+      "approved",
+      "denied",
+      "cancelled",
+    ]);
 
     // 1. Listen to resolved leaves
     const unsubLeaves = onSnapshot(
@@ -331,6 +335,10 @@ const AdminProcessedRequests = () => {
                   {item.status === "approved" ? (
                     <div className="bg-brand-orange text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
                       Approved
+                    </div>
+                  ) : item.status === "cancelled" ? (
+                    <div className="bg-[#8C827A] text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">
+                      Cancelled
                     </div>
                   ) : (
                     <div className="bg-[#7A5C52] text-white text-[8px] font-medium px-1.5 py-1.5 text-center w-14">

@@ -11,7 +11,8 @@ import type { NotificationPayload } from "@/lib/requestNotifications";
 export type RequestCollectionName =
   | "leaves"
   | "late_arrivals"
-  | "attendance_corrections";
+  | "attendance_corrections"
+  | "leave_cancellations";
 
 export type RequestStatus = "approved" | "denied";
 
