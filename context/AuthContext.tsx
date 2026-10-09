@@ -50,7 +50,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(currentUser);
 
       if (currentUser) {
-        requestNotificationPermissionAndSaveToken(currentUser.uid);
+        // requestNotificationPermissionAndSaveToken(currentUser.uid);
+        if (
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          requestNotificationPermissionAndSaveToken(currentUser.uid);
+        }
         const userDocRef = doc(db, "users", currentUser.uid);
 
         // Real-time listener for profile changes (Name, photoUrl, etc.)
