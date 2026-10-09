@@ -390,7 +390,7 @@ const LeaveRequestForm = () => {
               /* Half Day Time Range */
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] text-[#8C827A] font-normal">
-                  Time Range
+                  Time Period of Absense
                 </label>
 
                 <div className="grid grid-cols-2 gap-2">
