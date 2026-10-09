@@ -173,7 +173,7 @@ const EnableNotificationsButton = ({
         disabled={loading}
         className={
           className ||
-          "bg-brand-orange hover:bg-brand-orange/90 text-white text-xs font-medium px-3.5 py-2 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 self-start"
+          "bg-brand-orange hover:bg-brand-orange/90 text-white text-xs font-medium px-3.5 py-2 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 self-start w-full"
         }
       >
         {loading ? (
