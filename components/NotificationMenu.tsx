@@ -83,7 +83,7 @@ const NotificationMenu = () => {
 
     const q = query(
       collection(db, "notifications"),
-      where("userId", "in", [user.uid, user.email || ""]),
+      where("userId", "==", user.uid),
     );
 
     const unsubscribe = onSnapshot(
