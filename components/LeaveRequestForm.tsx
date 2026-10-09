@@ -255,6 +255,21 @@ const LeaveRequestForm = () => {
         source: "user", // ← new: audit trail, mirrors "admin" on calendar writes
         createdAt: serverTimestamp(),
       });
+      // ← NEW: notify admins about the new leave request
+      let leaveDetail = `${finalLeaveType} (${start === end ? start : `${start} to ${end}`})`;
+      if (leaveDuration === "half") {
+        leaveDetail = `Half Day on ${start} (${fromTime} - ${toTime})`;
+      }
+
+      notifyAdminsOfNewRequest({
+        employeeName: userData?.name || "Employee",
+        requestType: "Leave",
+        details: leaveDetail,
+        url: "/requests",
+      }).catch((err) => console.error("Admin notification error:", err));
+
+      // Show success modal
+      setShowSuccessModal(true);
     } catch (error: unknown) {
       console.error("Error submitting leave request:", error);
       setErrorMsg(
