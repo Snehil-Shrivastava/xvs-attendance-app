@@ -16,7 +16,7 @@ interface UserProfileDetails {
     name?: string;
     relationship?: string;
     relation?: string;
-    phone?: string;
+    contact?: string;
   };
   address?: string;
 }
@@ -102,7 +102,7 @@ export const MemberPersonalDetails = ({ userId }: { userId: string }) => {
             {emergency?.relation || emergency?.relationship || ""}
           </div>
           <div className={`${inputCardCls} text-center truncate`}>
-            {emergency?.phone || ""}
+            {emergency?.contact || ""}
           </div>
         </div>
       </div>
