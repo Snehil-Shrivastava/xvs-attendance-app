@@ -74,20 +74,18 @@ export default function EditTeamMemberPage() {
         setDepartment(data.department || "");
         setUserIdVal(data.userId || memberId);
         setDob(data.dob || "");
-        setPhone(data.phone || "XXXXXXXXXX");
-        setPanNumber(data.panNumber || "XXXXXXXXXX");
-        setAdhaarNumber(
-          data.adhaarNumber || data.aadhaarNumber || "XXXXXXXXXXXX",
-        );
+        setPhone(data.phone || "");
+        setPanNumber(data.panNumber || "");
+        setAdhaarNumber(data.adhaarNumber || data.aadhaarNumber || "");
         setEmail(data.email || "");
-        setEmergencyName(data.emergencyContact?.name || "XXXXXXX");
+        setEmergencyName(data.emergencyContact?.name || "");
         setEmergencyRelation(
           data.emergencyContact?.relation ||
             data.emergencyContact?.relationship ||
-            "XXXXXX",
+            "",
         );
-        setEmergencyPhone(data.emergencyContact?.phone || "XXXXXXXXXX");
-        setAddress(data.address || "XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        setEmergencyPhone(data.emergencyContact?.phone || "");
+        setAddress(data.address || "");
       }
       setLoading(false);
     });
