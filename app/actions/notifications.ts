@@ -354,3 +354,62 @@ export async function notifyAdminsOfNewRequest({
     return { success: false, error: "Failed to notify admins." };
   }
 }
+
+export async function notifyAdminsOfMissingAttendance(missingNames: string[]) {
+  if (missingNames.length === 0) return { success: true };
+
+  try {
+    const count = missingNames.length;
+    const title = `Attendance Alert: ${count} Missing Punch-in${count > 1 ? "s" : ""}`;
+    const body = `No attendance or leave record for: ${missingNames.join(", ")}. Please check the calendar.`;
+
+    const adminSnaps = await adminDb
+      .collection("users")
+      .where("role", "==", "admin")
+      .get();
+
+    if (adminSnaps.empty)
+      return { success: false, message: "No admins found." };
+
+    const allTokens: string[] = [];
+
+    for (const docSnap of adminSnaps.docs) {
+      const adminId = docSnap.id;
+      const adminData = docSnap.data();
+
+      // In-app notification
+      await adminDb.collection("notifications").add({
+        userId: adminId,
+        targetUserId: adminId,
+        title,
+        body,
+        url: "/team", // Send them to the team page where they can use the calendar
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      const tokens: string[] = adminData?.fcmTokens || [];
+      allTokens.push(...tokens);
+    }
+
+    const uniqueTokens = Array.from(new Set(allTokens)).filter(Boolean);
+    if (uniqueTokens.length > 0) {
+      const messages = uniqueTokens.map((token) => ({
+        token,
+        notification: { title, body },
+        data: { title, body, url: "/team" },
+        webpush: { fcmOptions: { link: "/team" } },
+        android: {
+          priority: "high" as const,
+          notification: { sound: "default", channelId: "default" },
+        },
+      }));
+      await adminMessaging.sendEach(messages);
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Failed to notify missing attendance:", err);
+    return { success: false, error: "Failed to notify." };
+  }
+}
