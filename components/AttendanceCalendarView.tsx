@@ -2,7 +2,7 @@
 
 // import { useCallback, useMemo } from "react";
 // import { useAuth } from "@/context/AuthContext";
-// import { Pencil, X, Loader2, Trash2 } from "lucide-react";
+// import { Pencil, X, Loader2, Trash2, Clock } from "lucide-react";
 // import { buildCalendarDays, type CalendarDay } from "@/lib/calendarGrid";
 // import { getDayDetails, type DayDetails } from "@/lib/calendarStatus";
 // import { useAttendanceCalendarData } from "@/hooks/useAttendanceCalendarData";
@@ -59,11 +59,15 @@
 //   });
 
 //   // Whether the day currently being managed has any data at all.
-//   // Used to decide whether to show the Delete button.
 //   const hasExistingData =
 //     admin.remarkDate !== "" &&
 //     (monthlyRecords[admin.remarkDate] !== undefined ||
 //       approvedLeavesMap[admin.remarkDate] !== undefined);
+
+//   // Check if the day has overtime added
+//   const hasOvertime =
+//     admin.remarkDate !== "" &&
+//     (monthlyRecords[admin.remarkDate]?.overtimeMinutes ?? 0) > 0;
 
 //   return (
 //     <div className="w-full font-poppins text-black select-none">
@@ -344,7 +348,7 @@
 //                 />
 //               </div>
 
-//               {/* Action row — Delete (left) + Save (right) */}
+//               {/* Action row — Delete / Clear OT (left) + Save (right) */}
 //               <div className="flex items-center gap-2 mt-2">
 //                 {hasExistingData && (
 //                   <button
@@ -355,7 +359,20 @@
 //                     className="flex items-center justify-center gap-1.5 text-[#DE4949] border border-[#DE4949]/50 bg-[#DE4949]/5 hover:bg-[#DE4949]/10 text-xs py-2.5 px-3 font-medium transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 //                   >
 //                     <Trash2 className="w-3.5 h-3.5" />
-//                     <span>Delete</span>
+//                     <span className="hidden sm:inline">Delete</span>
+//                   </button>
+//                 )}
+
+//                 {hasOvertime && (
+//                   <button
+//                     type="button"
+//                     disabled={admin.savingRemark}
+//                     onClick={admin.deleteOvertime}
+//                     title="Remove overtime for this day"
+//                     className="flex items-center justify-center gap-1.5 text-[#55B5E5] border border-[#55B5E5]/50 bg-[#55B5E5]/5 hover:bg-[#55B5E5]/10 text-xs py-2.5 px-3 font-medium transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+//                   >
+//                     <Clock className="w-3.5 h-3.5" />
+//                     <span className="hidden sm:inline">Clear OT</span>
 //                   </button>
 //                 )}
 
@@ -384,7 +401,7 @@
 
 // export default AttendanceCalendarView;
 
-// ------------------------------- overtime delete/edit
+// ------------------------ adding labels in the attendance calendar
 
 "use client";
 
@@ -405,6 +422,23 @@ interface AttendanceCalendarViewProps {
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
+// "90" -> "1h 30m" / "120" -> "2h" / "45" -> "45m"
+const formatMinutes = (totalMinutes: number): string => {
+  if (!totalMinutes || totalMinutes <= 0) return "";
+  const h = Math.floor(totalMinutes / 60);
+  const m = Math.round(totalMinutes % 60);
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+};
+
+// Seconds → "45s" / "12m" / "1h 5m"
+const formatLateDelay = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return "";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  return formatMinutes(Math.round(seconds / 60));
+};
+
 const AttendanceCalendarView = ({
   currentDate,
   currentMonthStr,
@@ -414,8 +448,12 @@ const AttendanceCalendarView = ({
   const effectiveUid = targetUserId || user?.uid;
   const isAdmin = userData?.role === "admin";
 
-  const { monthlyRecords, approvedLeavesMap, holidaysMap } =
-    useAttendanceCalendarData(effectiveUid, currentMonthStr);
+  const {
+    monthlyRecords,
+    approvedLeavesMap,
+    approvedLeaveDetailsMap, // NEW
+    holidaysMap,
+  } = useAttendanceCalendarData(effectiveUid, currentMonthStr);
 
   const calendarDays = useMemo(
     () => buildCalendarDays(currentDate),
@@ -429,8 +467,9 @@ const AttendanceCalendarView = ({
         monthlyRecords[day.dateString],
         holidaysMap[day.dateString],
         approvedLeavesMap[day.dateString],
+        approvedLeaveDetailsMap[day.dateString], // NEW
       ),
-    [monthlyRecords, holidaysMap, approvedLeavesMap],
+    [monthlyRecords, holidaysMap, approvedLeavesMap, approvedLeaveDetailsMap],
   );
 
   const { toggleDay, collapse, overlayConfig } = useExpandedOverlay(
@@ -446,13 +485,11 @@ const AttendanceCalendarView = ({
     approvedLeavesMap,
   });
 
-  // Whether the day currently being managed has any data at all.
   const hasExistingData =
     admin.remarkDate !== "" &&
     (monthlyRecords[admin.remarkDate] !== undefined ||
       approvedLeavesMap[admin.remarkDate] !== undefined);
 
-  // Check if the day has overtime added
   const hasOvertime =
     admin.remarkDate !== "" &&
     (monthlyRecords[admin.remarkDate]?.overtimeMinutes ?? 0) > 0;
@@ -540,14 +577,52 @@ const AttendanceCalendarView = ({
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-1">
+              {/* Centre block: label → late → half-day window → OT duration → punch window → remark */}
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 gap-0.5 overflow-hidden">
                 {overlayConfig.details.label && (
-                  <span className="font-calSans text-xs tracking-wide leading-tight drop-shadow-xs">
+                  <span className="font-calSans text-[10px] md:text-xs tracking-wide leading-none drop-shadow-xs">
                     {overlayConfig.details.label}
                   </span>
                 )}
+
+                {overlayConfig.details.hasLateDelay && (
+                  <span className="text-[8px] md:text-[9px] leading-none font-semibold tabular-nums">
+                    Late{" "}
+                    {formatLateDelay(overlayConfig.details.lateDelaySeconds)}
+                  </span>
+                )}
+
+                {overlayConfig.details.halfDayFrom &&
+                  overlayConfig.details.halfDayTo && (
+                    <span className="text-[8px] md:text-[9px] leading-none tabular-nums opacity-90">
+                      {overlayConfig.details.halfDayFrom.slice(0, 5)}–
+                      {overlayConfig.details.halfDayTo.slice(0, 5)}
+                    </span>
+                  )}
+
+                {overlayConfig.details.hasOvertime && (
+                  <span
+                    className={`text-[8px] md:text-[9px] leading-none font-semibold tabular-nums ${
+                      overlayConfig.details.isNormal
+                        ? "text-[#55B5E5]"
+                        : "text-white"
+                    }`}
+                  >
+                    OT {formatMinutes(overlayConfig.details.overtimeMinutes)}
+                  </span>
+                )}
+
+                {overlayConfig.details.checkIn && (
+                  <span className="text-[8px] md:text-[9px] leading-none tabular-nums opacity-70">
+                    {overlayConfig.details.checkIn.slice(0, 5)}
+                    {overlayConfig.details.checkOut
+                      ? `–${overlayConfig.details.checkOut.slice(0, 5)}`
+                      : ""}
+                  </span>
+                )}
+
                 {overlayConfig.details.remark && (
-                  <span className="text-[10px] opacity-90 font-normal italic leading-tight mt-1 line-clamp-2">
+                  <span className="text-[8px] md:text-[9px] opacity-80 font-normal italic leading-tight line-clamp-1 md:line-clamp-2 mt-0.5">
                     &ldquo;{overlayConfig.details.remark}&rdquo;
                   </span>
                 )}
@@ -591,7 +666,7 @@ const AttendanceCalendarView = ({
         </div>
       </div>
 
-      {/* Admin modal */}
+      {/* Admin modal — unchanged */}
       {admin.isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-poppins"
@@ -615,7 +690,6 @@ const AttendanceCalendarView = ({
             </div>
 
             <form onSubmit={admin.save} className="flex flex-col gap-4">
-              {/* Status selector */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-[#8C827A]">
                   Mark Status
@@ -640,7 +714,6 @@ const AttendanceCalendarView = ({
                 </div>
               </div>
 
-              {/* Check-in + WFH toggle (Present only) */}
               {admin.selectedStatus === "Present" && (
                 <div className="flex flex-col gap-3 animate-in fade-in duration-150">
                   <div className="flex flex-col gap-1.5">
@@ -689,7 +762,6 @@ const AttendanceCalendarView = ({
                 </div>
               )}
 
-              {/* Leave subtype (Leave only) */}
               {admin.selectedStatus === "Leave" && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in duration-150">
                   <label className="text-[10px] text-[#8C827A]">
@@ -722,7 +794,6 @@ const AttendanceCalendarView = ({
                 </div>
               )}
 
-              {/* Remark */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-[#8C827A]">
                   Remark / Note (Optional)
@@ -736,7 +807,6 @@ const AttendanceCalendarView = ({
                 />
               </div>
 
-              {/* Action row — Delete / Clear OT (left) + Save (right) */}
               <div className="flex items-center gap-2 mt-2">
                 {hasExistingData && (
                   <button

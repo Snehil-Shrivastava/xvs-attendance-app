@@ -1,3 +1,211 @@
+// // lib/calendarStatus.ts
+// //
+// // Pure status resolver for calendar day-cells. Extracted from
+// // AttendanceCalendarView's `getDayDetails`.
+// //
+// // Fix #7 semantics preserved:
+// //  - Status is primary; overtime is a secondary indicator.
+// //  - Exception: overtime-only days (no status set) show Overtime as primary.
+// //
+// // WFH fix: "WFH" is the canonical value written by admin. "Work from Home"
+// // is kept as a legacy alias on the read path only.
+
+// import type { CalendarDay } from "./calendarGrid";
+
+// export type AttendanceStatus =
+//   | "On Time"
+//   | "Late/Allowed"
+//   | "Grace Used"
+//   | "Late"
+//   | "Half Day"
+//   | "Absent"
+//   | "On Leave"
+//   | "WFH"
+//   | "Work from Home" // legacy alias — read-only
+//   | "Holiday";
+
+// export interface DayRecord {
+//   date: string;
+//   status?: AttendanceStatus;
+//   overtimeMinutes?: number;
+//   checkIn?: string;
+//   leaveType?: string;
+//   remark?: string;
+//   // NEW integer-second fields
+//   delaySeconds?: number;
+//   graceDeductedSeconds?: number;
+//   // Legacy float fields (kept optional for tolerant reads during migration)
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   minutesDelayed?: any;
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   graceDeducted?: any;
+// }
+
+// export interface DayDetails {
+//   styleClass: string;
+//   label: string;
+//   remark: string;
+//   isNormal: boolean;
+//   hasOvertime: boolean;
+//   overtimeMinutes: number;
+// }
+
+// export function getDayDetails(
+//   day: CalendarDay,
+//   record: DayRecord | undefined,
+//   holidayName: string | undefined,
+//   approvedLeaveType: string | undefined,
+// ): DayDetails {
+//   const remark = record?.remark || "";
+
+//   if (!day.isCurrentMonth) {
+//     return {
+//       styleClass: "bg-[#F3ECE0]/70 text-[#C4BCB1]",
+//       label: "",
+//       remark: "",
+//       isNormal: true,
+//       hasOvertime: false,
+//       overtimeMinutes: 0,
+//     };
+//   }
+
+//   if (day.isWeekend) {
+//     return {
+//       styleClass: "bg-transparent text-[#B8B1A8]",
+//       label: "",
+//       remark,
+//       isNormal: true,
+//       hasOvertime: false,
+//       overtimeMinutes: 0,
+//     };
+//   }
+
+//   // 1. Holiday
+//   if (holidayName) {
+//     return {
+//       styleClass: "bg-[#BA255F] text-white font-medium",
+//       label: holidayName,
+//       remark,
+//       isNormal: false,
+//       hasOvertime: false,
+//       overtimeMinutes: 0,
+//     };
+//   }
+
+//   // 2. Approved leaves (user or admin)
+//   if (approvedLeaveType === "Half Day") {
+//     return {
+//       styleClass: "bg-[#74C0B5] text-white font-medium",
+//       label: "Half Day",
+//       remark,
+//       isNormal: false,
+//       hasOvertime: false,
+//       overtimeMinutes: 0,
+//     };
+//   }
+//   if (approvedLeaveType) {
+//     return {
+//       styleClass: "bg-[#4E7B80] text-white font-medium",
+//       label: approvedLeaveType,
+//       remark,
+//       isNormal: false,
+//       hasOvertime: false,
+//       overtimeMinutes: 0,
+//     };
+//   }
+
+//   // 3. No attendance record yet
+//   if (!record) {
+//     return {
+//       styleClass: "bg-transparent text-[#231F20]",
+//       label: "",
+//       remark,
+//       isNormal: true,
+//       hasOvertime: false,
+//       overtimeMinutes: 0,
+//     };
+//   }
+
+//   const overtimeMinutes = record.overtimeMinutes ?? 0;
+//   const hasOvertime = overtimeMinutes > 0;
+
+//   // 4. Overtime-only days (no status) → Overtime primary
+//   if (!record.status && hasOvertime) {
+//     return {
+//       styleClass: "bg-[#55B5E5] text-white font-medium",
+//       label: "Overtime",
+//       remark,
+//       isNormal: false,
+//       hasOvertime: true,
+//       overtimeMinutes,
+//     };
+//   }
+
+//   // 5. Absent — render as a normal day (no background color).
+//   if (record.status === "Absent") {
+//     return {
+//       styleClass: "bg-transparent text-[#231F20]",
+//       label: "Absent",
+//       remark,
+//       isNormal: true,
+//       hasOvertime,
+//       overtimeMinutes,
+//     };
+//   }
+
+//   // 6. Status primary; overtime as secondary indicator
+//   let styleClass = "bg-brand-orange text-white font-medium";
+//   let label = "";
+
+//   switch (record.status) {
+//     case "Late":
+//       styleClass = "bg-[#DE4949] text-white font-medium";
+//       label = "Late";
+//       break;
+//     case "Late/Allowed": // NEW
+//       styleClass = "bg-[#91C95A] text-white font-medium";
+//       label = "Late/Allowed";
+//       break;
+//     case "Grace Used":
+//       styleClass = "bg-[#91C95A] text-white font-medium";
+//       label = "Late/Allowed";
+//       break;
+//     case "Half Day":
+//       styleClass = "bg-[#74C0B5] text-white font-medium";
+//       label = "Half Day";
+//       break;
+//     case "On Leave":
+//       styleClass = "bg-[#4E7B80] text-white font-medium";
+//       label = record.leaveType || "Leave";
+//       break;
+//     case "WFH":
+//     case "Work from Home":
+//       styleClass = "bg-[#577A64] text-white font-medium";
+//       label = "WFH";
+//       break;
+//     case "Holiday":
+//       styleClass = "bg-[#BA255F] text-white font-medium";
+//       label = holidayName || "Holiday";
+//       break;
+//     case "On Time":
+//     default:
+//       styleClass = "bg-brand-orange text-white font-medium";
+//       label = "";
+//       break;
+//   }
+
+//   return {
+//     styleClass,
+//     label,
+//     remark,
+//     isNormal: false,
+//     hasOvertime,
+//     overtimeMinutes,
+//   };
+// }
+
+// ------------------------ adding labels in the attendance calendar
+
 // lib/calendarStatus.ts
 //
 // Pure status resolver for calendar day-cells. Extracted from
@@ -29,6 +237,7 @@ export interface DayRecord {
   status?: AttendanceStatus;
   overtimeMinutes?: number;
   checkIn?: string;
+  checkOut?: string; // NEW
   leaveType?: string;
   remark?: string;
   // NEW integer-second fields
@@ -41,6 +250,20 @@ export interface DayRecord {
   graceDeducted?: any;
 }
 
+/**
+ * Structured info for a day that has an approved leave covering it.
+ * Carried separately from the flat `approvedLeaveType` string so the
+ * expanded calendar cell can render the half-day absence window.
+ */
+export interface LeaveDayInfo {
+  label: string;
+  fromTime: string | null;
+  toTime: string | null;
+  durationType: string; // "half" | "single" | "multiple"
+  leaveType: string;
+  isHalfDay: boolean;
+}
+
 export interface DayDetails {
   styleClass: string;
   label: string;
@@ -48,6 +271,14 @@ export interface DayDetails {
   isNormal: boolean;
   hasOvertime: boolean;
   overtimeMinutes: number;
+
+  // --- Extra info rendered only inside the expanded overlay ---
+  checkIn: string; // raw "HH:MM:SS"
+  checkOut: string; // raw "HH:MM:SS" (may be empty)
+  halfDayFrom: string; // "HH:MM" (empty unless isHalfDay)
+  halfDayTo: string; // "HH:MM" (empty unless isHalfDay)
+  lateDelaySeconds: number; // seconds beyond grace; 0 unless status === "Late"
+  hasLateDelay: boolean;
 }
 
 export function getDayDetails(
@@ -55,11 +286,31 @@ export function getDayDetails(
   record: DayRecord | undefined,
   holidayName: string | undefined,
   approvedLeaveType: string | undefined,
+  leaveInfo?: LeaveDayInfo, // NEW (optional → back-compat)
 ): DayDetails {
   const remark = record?.remark || "";
+  const checkIn = record?.checkIn || "";
+  const checkOut = record?.checkOut || "";
+  const halfDayFrom = leaveInfo?.isHalfDay ? leaveInfo.fromTime || "" : "";
+  const halfDayTo = leaveInfo?.isHalfDay ? leaveInfo.toTime || "" : "";
+
+  const delaySec = Math.max(0, Number(record?.delaySeconds ?? 0) || 0);
+  const graceSec = Math.max(0, Number(record?.graceDeductedSeconds ?? 0) || 0);
+  const lateDelaySeconds = Math.max(0, delaySec - graceSec);
+  const hasLateDelay = record?.status === "Late" && lateDelaySeconds > 0;
+
+  const extras = {
+    checkIn,
+    checkOut,
+    halfDayFrom,
+    halfDayTo,
+    lateDelaySeconds,
+    hasLateDelay,
+  };
 
   if (!day.isCurrentMonth) {
     return {
+      ...extras,
       styleClass: "bg-[#F3ECE0]/70 text-[#C4BCB1]",
       label: "",
       remark: "",
@@ -71,6 +322,7 @@ export function getDayDetails(
 
   if (day.isWeekend) {
     return {
+      ...extras,
       styleClass: "bg-transparent text-[#B8B1A8]",
       label: "",
       remark,
@@ -83,6 +335,7 @@ export function getDayDetails(
   // 1. Holiday
   if (holidayName) {
     return {
+      ...extras,
       styleClass: "bg-[#BA255F] text-white font-medium",
       label: holidayName,
       remark,
@@ -95,6 +348,7 @@ export function getDayDetails(
   // 2. Approved leaves (user or admin)
   if (approvedLeaveType === "Half Day") {
     return {
+      ...extras,
       styleClass: "bg-[#74C0B5] text-white font-medium",
       label: "Half Day",
       remark,
@@ -105,6 +359,7 @@ export function getDayDetails(
   }
   if (approvedLeaveType) {
     return {
+      ...extras,
       styleClass: "bg-[#4E7B80] text-white font-medium",
       label: approvedLeaveType,
       remark,
@@ -117,6 +372,7 @@ export function getDayDetails(
   // 3. No attendance record yet
   if (!record) {
     return {
+      ...extras,
       styleClass: "bg-transparent text-[#231F20]",
       label: "",
       remark,
@@ -132,6 +388,7 @@ export function getDayDetails(
   // 4. Overtime-only days (no status) → Overtime primary
   if (!record.status && hasOvertime) {
     return {
+      ...extras,
       styleClass: "bg-[#55B5E5] text-white font-medium",
       label: "Overtime",
       remark,
@@ -144,6 +401,7 @@ export function getDayDetails(
   // 5. Absent — render as a normal day (no background color).
   if (record.status === "Absent") {
     return {
+      ...extras,
       styleClass: "bg-transparent text-[#231F20]",
       label: "Absent",
       remark,
@@ -162,7 +420,7 @@ export function getDayDetails(
       styleClass = "bg-[#DE4949] text-white font-medium";
       label = "Late";
       break;
-    case "Late/Allowed": // NEW
+    case "Late/Allowed":
       styleClass = "bg-[#91C95A] text-white font-medium";
       label = "Late/Allowed";
       break;
@@ -195,6 +453,7 @@ export function getDayDetails(
   }
 
   return {
+    ...extras,
     styleClass,
     label,
     remark,
